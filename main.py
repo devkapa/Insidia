@@ -1,10 +1,12 @@
 import os
 import sys
+import requests
 
 import pygame
-import requests
 from pygame.locals import *
 
+
+# Versioning
 version = "alpha-0.1"
 # github_url = "https://api.github.com/repos/devkapa/InsidiaDiff/releases/latest"
 
@@ -26,9 +28,10 @@ GRAY = (168, 168, 168)
 BLACK = (0, 0, 0)
 BACKGROUND_COLOUR = (14, 17, 23)
 SIDEBAR_COLOUR = (38, 39, 48)
+SIDEBAR_HIGHLIGHT = (58, 59, 70)
 
 # Size constants
-WIDTH, HEIGHT = 1000, 800
+WIDTH, HEIGHT = 1200, 800
 SIDEBAR_WIDTH, SIDEBAR_HEIGHT = 250, HEIGHT
 SIDEBAR_PADDING = 10
 
@@ -42,7 +45,7 @@ ICON = pygame.image.load(os.path.join('assets', 'textures', 'logo.png'))
 pygame.display.set_icon(ICON)
 
 # Frames per second constant
-FPS = 60
+FPS = 120
 
 # Fonts
 TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
@@ -51,6 +54,7 @@ TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.tt
 # Enum values for code readability
 HOME, SCIENTIFIC, GRAPHING, SETTINGS = 0, 1, 2, 3
 RETRACTED, EXTENDED = 0, 1
+SIDEBAR_SURFACE, SIDEBAR_BUTTON, SIDEBAR_PAGES = 0, 1, 2
 
 
 # Returns a surface with text in the game font
@@ -61,26 +65,55 @@ def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
     return text
 
 
-def get_sidebar(sidebar):
+def get_sidebar(sidebar, status):
     if sidebar == EXTENDED:
+
+        # Sidebar background
         sidebar_surface = pygame.Surface((SIDEBAR_WIDTH, SIDEBAR_HEIGHT))
         sidebar_surface.fill(SIDEBAR_COLOUR)
+
+        # Close button
         close_button = pygame.Rect(SIDEBAR_WIDTH - 30 - SIDEBAR_PADDING, SIDEBAR_PADDING, 30, 30)
         close_text = render_text("X", 35 if close_button.collidepoint(pygame.mouse.get_pos()) else 30, font=TITLE)
         sidebar_surface.blit(close_text, (SIDEBAR_WIDTH - close_text.get_width() - SIDEBAR_PADDING, SIDEBAR_PADDING))
-        return sidebar_surface, close_button
+
+        # Pages
+        pages = ["Home", "Scientific Calculator", "Graphing Calculator", "Settings"]
+        pygame.display.set_caption(f"{pages[status]} • Insidia")
+        for index, page in enumerate(pages):
+            page_button = pygame.Surface((SIDEBAR_WIDTH - (SIDEBAR_PADDING*2), 30))
+            page_rect = pygame.Rect((SIDEBAR_PADDING, 100+(index*40)), (SIDEBAR_WIDTH - (SIDEBAR_PADDING*2), 30))
+            page_button.fill(SIDEBAR_HIGHLIGHT if status == index or page_rect.collidepoint(pygame.mouse.get_pos()) else SIDEBAR_COLOUR)
+            page_text = render_text(page, 20)
+            page_button.blit(page_text, (SIDEBAR_PADDING, 5))
+            sidebar_surface.blit(page_button, (SIDEBAR_PADDING, 100+(index*40)))
+            pages[index] = page_rect
+
+        # Page specific controls
+
+        return sidebar_surface, close_button, pages
 
     if sidebar == RETRACTED:
-        sidebar_surface = pygame.Surface((50, 50))
-        sidebar_surface = sidebar_surface.convert_alpha()
-        sidebar_surface.fill((0, 0, 0, 0))
         open_button = pygame.Rect(SIDEBAR_PADDING, SIDEBAR_PADDING, 30, 30)
         open_text = render_text("»", 35 if open_button.collidepoint(pygame.mouse.get_pos()) else 30, font=TITLE)
-        sidebar_surface.blit(open_text, (SIDEBAR_PADDING, SIDEBAR_PADDING))
-        return sidebar_surface, open_button
+        return open_text, open_button
 
 
-def draw_home():
+def draw_home(sidebar_offset):
+    WIN.fill(BACKGROUND_COLOUR)
+    title = render_text("Insidia: Your partner in math", 40, font=TITLE)
+    WIN.blit(title, (sidebar_offset + 80, 80))
+
+
+def draw_scientific():
+    WIN.fill(BACKGROUND_COLOUR)
+
+
+def draw_graphing():
+    WIN.fill(BACKGROUND_COLOUR)
+
+
+def draw_settings():
     WIN.fill(BACKGROUND_COLOUR)
 
 
@@ -90,7 +123,7 @@ def main():
     running = True
 
     # Set the initial state to the title screen
-    state = HOME
+    current_state = HOME
     # update_message = ""
 
     # Set the sidebar to default open
@@ -114,7 +147,7 @@ def main():
         clock.tick(FPS)
 
         # Get sidebar surface and button rects
-        sidebar = get_sidebar(sidebar_state)
+        sidebar = get_sidebar(sidebar_state, current_state)
 
         # Iterate through pygame events
         for event in pygame.event.get():
@@ -126,31 +159,42 @@ def main():
 
             # Check if the user clicked the mouse
             if event.type == pygame.MOUSEBUTTONDOWN:
-                # Close the sidebar if "X" pressed
-                if sidebar[1].collidepoint(event.pos):
+
+                # Change sidebar state if button is pressed
+                if sidebar[SIDEBAR_BUTTON].collidepoint(event.pos):
                     if sidebar_state == EXTENDED:
                         sidebar_state = RETRACTED
                     else:
                         sidebar_state = EXTENDED
                         sidebar_anim_frames = SIDEBAR_WIDTH
 
-            if state == HOME:
-                draw_home()
+                # Reload sidebar after state change
+                sidebar = get_sidebar(sidebar_state, current_state)
 
-            if state == SCIENTIFIC:
-                pass
+                # Change program state if sidebar page button is pressed
+                if len(sidebar) > SIDEBAR_PAGES:
+                    for state in [HOME, SCIENTIFIC, GRAPHING, SETTINGS]:
+                        if sidebar[SIDEBAR_PAGES][state].collidepoint(event.pos):
+                            current_state = state
 
-            if state == GRAPHING:
-                pass
+            if current_state == HOME:
+                draw_home(230 if sidebar_state == EXTENDED else 0)
 
-            if state == SETTINGS:
-                pass
+            if current_state == SCIENTIFIC:
+                draw_scientific()
 
+            if current_state == GRAPHING:
+                draw_graphing()
+
+            if current_state == SETTINGS:
+                draw_settings()
+
+        # Draw the sidebar onto the screen
         if sidebar_state == EXTENDED:
-            WIN.blit(sidebar[0], (0 - sidebar_anim_frames, 0))
-            sidebar_anim_frames -= 50 if 0 < sidebar_anim_frames else 0
+            WIN.blit(sidebar[SIDEBAR_SURFACE], (0 - sidebar_anim_frames, 0))
+            sidebar_anim_frames -= 25 if 0 < sidebar_anim_frames else 0
         else:
-            WIN.blit(sidebar[0], (0, 0))
+            WIN.blit(sidebar[SIDEBAR_SURFACE], (10, 10))
 
         pygame.display.update()
 
