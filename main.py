@@ -5,6 +5,8 @@ import requests
 import pygame
 from pygame.locals import *
 
+from calc.graphing import Graph
+from widgets.slider import Slider
 
 # Versioning
 version = "alpha-0.1"
@@ -65,6 +67,7 @@ def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
     return text
 
 
+# Create a sidebar depending on whether it is extended or not
 def get_sidebar(sidebar, status):
     if sidebar == EXTENDED:
 
@@ -73,20 +76,28 @@ def get_sidebar(sidebar, status):
         sidebar_surface.fill(SIDEBAR_COLOUR)
 
         # Close button
-        close_button = pygame.Rect(SIDEBAR_WIDTH - 30 - SIDEBAR_PADDING, SIDEBAR_PADDING, 30, 30)
-        close_text = render_text("X", 35 if close_button.collidepoint(pygame.mouse.get_pos()) else 30, font=TITLE)
-        sidebar_surface.blit(close_text, (SIDEBAR_WIDTH - close_text.get_width() - SIDEBAR_PADDING, SIDEBAR_PADDING))
+        close_button = pygame.Rect(
+            SIDEBAR_WIDTH - 30 - SIDEBAR_PADDING, SIDEBAR_PADDING, 30, 30)
+        close_text = render_text("X", 35 if close_button.collidepoint(
+            pygame.mouse.get_pos()) else 30, font=TITLE)
+        sidebar_surface.blit(close_text, (SIDEBAR_WIDTH -
+                             close_text.get_width() - SIDEBAR_PADDING, SIDEBAR_PADDING))
 
         # Pages
-        pages = ["Home", "Scientific Calculator", "Graphing Calculator", "Settings"]
+        pages = ["Home", "Scientific Calculator",
+                 "Graphing Calculator", "Settings"]
         pygame.display.set_caption(f"{pages[status]} • Insidia")
         for index, page in enumerate(pages):
-            page_button = pygame.Surface((SIDEBAR_WIDTH - (SIDEBAR_PADDING*2), 30))
-            page_rect = pygame.Rect((SIDEBAR_PADDING, 100+(index*40)), (SIDEBAR_WIDTH - (SIDEBAR_PADDING*2), 30))
-            page_button.fill(SIDEBAR_HIGHLIGHT if status == index or page_rect.collidepoint(pygame.mouse.get_pos()) else SIDEBAR_COLOUR)
+            page_button = pygame.Surface(
+                (SIDEBAR_WIDTH - (SIDEBAR_PADDING*2), 30))
+            page_rect = pygame.Rect(
+                (SIDEBAR_PADDING, 100+(index*40)), (SIDEBAR_WIDTH - (SIDEBAR_PADDING*2), 30))
+            page_button.fill(SIDEBAR_HIGHLIGHT if status == index or page_rect.collidepoint(
+                pygame.mouse.get_pos()) else SIDEBAR_COLOUR)
             page_text = render_text(page, 20)
             page_button.blit(page_text, (SIDEBAR_PADDING, 5))
-            sidebar_surface.blit(page_button, (SIDEBAR_PADDING, 100+(index*40)))
+            sidebar_surface.blit(
+                page_button, (SIDEBAR_PADDING, 100+(index*40)))
             pages[index] = page_rect
 
         # Page specific controls
@@ -95,14 +106,21 @@ def get_sidebar(sidebar, status):
 
     if sidebar == RETRACTED:
         open_button = pygame.Rect(SIDEBAR_PADDING, SIDEBAR_PADDING, 30, 30)
-        open_text = render_text("»", 35 if open_button.collidepoint(pygame.mouse.get_pos()) else 30, font=TITLE)
+        open_text = render_text("»", 35 if open_button.collidepoint(
+            pygame.mouse.get_pos()) else 30, font=TITLE)
         return open_text, open_button
 
 
-def draw_home(sidebar_offset):
+def draw_home(sidebar_offset, graph, sliders):
     WIN.fill(BACKGROUND_COLOUR)
     title = render_text("Insidia: Your partner in math", 40, font=TITLE)
     WIN.blit(title, (sidebar_offset + 80, 80))
+    WIN.blit(graph.create((-10, 10), (-5, 5), scale_x=sliders[0].value(), scale_y=sliders[1].value()),
+             (sidebar_offset + 80, 190))
+    graph.set_pos((sidebar_offset + 80, 190))
+    for i, slider in enumerate(sliders):
+        WIN.blit(slider.create(), (sidebar_offset + 700, 190 + (80*i)))
+        slider.set_pos((sidebar_offset + 700, 190 + (80*i)))
 
 
 def draw_scientific():
@@ -141,6 +159,13 @@ def main():
     # except requests.Timeout:
     #    update_message = "Cannot check for updates."
 
+    clicked = None
+
+    graph = Graph("", (600, 300))
+    scale_x_slider = Slider(25, 100, 200, 10, 10)
+    scale_y_slider = Slider(25, 100, 200, 10, 10)
+    sliders = [scale_x_slider, scale_y_slider]
+
     while running:
 
         # Limit the loop to run only 60 times per second
@@ -177,17 +202,57 @@ def main():
                         if sidebar[SIDEBAR_PAGES][state].collidepoint(event.pos):
                             current_state = state
 
-            if current_state == HOME:
-                draw_home(230 if sidebar_state == EXTENDED else 0)
+        if current_state == HOME:
+            draw_home(230 if sidebar_state == EXTENDED else 0,
+                      graph, [scale_x_slider, scale_y_slider])
 
-            if current_state == SCIENTIFIC:
-                draw_scientific()
+            buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
 
-            if current_state == GRAPHING:
-                draw_graphing()
+            if graph.get_clicked():
+                pygame.mouse.set_visible(False)
+                last_pos = graph.get_mouse_pos()
+                graph.shift_x(pygame.mouse.get_pos()[0] - last_pos[0])
+                graph.shift_y(pygame.mouse.get_pos()[1] - last_pos[1])
+                graph.set_clicked(True, pygame.mouse.get_pos())
 
-            if current_state == SETTINGS:
-                draw_settings()
+            if buttons_pressed[0]:
+                for slider in sliders:
+                    if slider == clicked or clicked == None:
+                        if slider.current_surface.get_rect(topleft=slider.get_pos()).collidepoint(pygame.mouse.get_pos()):
+                            slider.set_clicked(True)
+                            clicked = slider
+                if graph == clicked or clicked == None:
+                    if graph.viewing_surface.get_rect(topleft=graph.get_pos()).collidepoint(pygame.mouse.get_pos()):
+                        graph.set_clicked(True, pygame.mouse.get_pos())
+                        clicked = graph
+            else:
+                pygame.mouse.set_visible(True)
+                clicked = None
+                if graph.get_clicked():
+                    graph.set_clicked(False)
+                for slider in sliders:
+                    if slider.get_clicked():
+                        slider.set_clicked(False)
+
+            for slider in sliders:
+                if slider.get_clicked():
+                    if pygame.mouse.get_pos()[0] <= slider.get_pos()[0] + 10:
+                        slider.current_x = 10
+                        continue
+                    if pygame.mouse.get_pos()[0] >= slider.get_pos()[0] + slider.size_x + 10:
+                        slider.current_x = slider.size_x + 10
+                        continue
+                    slider.current_x = pygame.mouse.get_pos()[
+                        0] - slider.get_pos()[0]
+
+        if current_state == SCIENTIFIC:
+            draw_scientific()
+
+        if current_state == GRAPHING:
+            draw_graphing()
+
+        if current_state == SETTINGS:
+            draw_settings()
 
         # Draw the sidebar onto the screen
         if sidebar_state == EXTENDED:
