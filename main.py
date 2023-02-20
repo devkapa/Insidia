@@ -118,9 +118,12 @@ def draw_home(sidebar_offset, graph, sliders):
     WIN.blit(graph.create((-10, 10), (-5, 5), scale_x=sliders[0].value(), scale_y=sliders[1].value()),
              (sidebar_offset + 80, 190))
     graph.set_pos((sidebar_offset + 80, 190))
-    for i, slider in enumerate(sliders):
-        WIN.blit(slider.create(), (sidebar_offset + 700, 190 + (80*i)))
-        slider.set_pos((sidebar_offset + 700, 190 + (80*i)))
+    accumulated = 0
+    for slider in sliders:
+        surface = slider.create()
+        WIN.blit(surface, (sidebar_offset + 700, 190 + (accumulated)))
+        slider.set_pos((sidebar_offset + 700, 190 + (accumulated)))
+        accumulated += surface.get_height() + 20
 
 
 def draw_scientific():
@@ -208,6 +211,19 @@ def main():
 
             buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
 
+            if clicked == None:
+                hovered = False
+                if graph.viewing_surface.get_rect(topleft=graph.get_pos()).collidepoint(pygame.mouse.get_pos()):
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEALL)
+                    hovered = True
+                for slider in sliders:
+                    if slider.current_surface.get_rect(topleft=slider.get_pos()).collidepoint(pygame.mouse.get_pos()):
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEWE)
+                        hovered = True
+
+            pygame.mouse.set_cursor(
+                pygame.SYSTEM_CURSOR_ARROW) if not hovered else None
+
             if graph.get_clicked():
                 pygame.mouse.set_visible(False)
                 last_pos = graph.get_mouse_pos()
@@ -236,11 +252,12 @@ def main():
 
             for slider in sliders:
                 if slider.get_clicked():
-                    if pygame.mouse.get_pos()[0] <= slider.get_pos()[0] + 10:
-                        slider.current_x = 10
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEWE)
+                    if pygame.mouse.get_pos()[0] <= slider.get_pos()[0] + slider.radius:
+                        slider.current_x = slider.radius
                         continue
-                    if pygame.mouse.get_pos()[0] >= slider.get_pos()[0] + slider.size_x + 10:
-                        slider.current_x = slider.size_x + 10
+                    if pygame.mouse.get_pos()[0] >= slider.get_pos()[0] + slider.size_x + slider.radius:
+                        slider.current_x = slider.size_x + slider.radius
                         continue
                     slider.current_x = pygame.mouse.get_pos()[
                         0] - slider.get_pos()[0]
