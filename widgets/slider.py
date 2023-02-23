@@ -36,14 +36,22 @@ class Slider:
     pos: tuple
     clicked: bool
 
-    def __init__(self, min, max, size_x, size_y, radius) -> None:
+    def __init__(self, min, max, size_x, size_y, radius, default=None) -> None:
         self.min = min
         self.max = max
         self.size_x = size_x
         self.size_y = size_y
         self.radius = radius
         self.x_increment = self.size_x / (self.max - self.min)
-        self.current_x = self.radius
+        if default is None:
+            self.current_x = self.radius
+        else:
+            try:
+                value = [i for i in range(
+                    self.min, self.max + 1)].index(default)
+                self.current_x = self.radius + (value*self.x_increment)
+            except ValueError:
+                self.current_x = self.radius
         self.current_surface = None
         self.pos = None
         self.clicked = False

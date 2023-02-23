@@ -5,8 +5,11 @@ import requests
 import pygame
 from pygame.locals import *
 
+from symengine import sympify, Eq, Symbol
+
 from calc.graphing import Graph
-from widgets.slider import Slider
+from calc.relations import Relation
+
 
 # Versioning
 version = "alpha-0.1"
@@ -111,15 +114,15 @@ def get_sidebar(sidebar, status):
         return open_text, open_button
 
 
-def draw_home(sidebar_offset, graph, sliders):
+def draw_home(sidebar_offset, graph):
     WIN.fill(BACKGROUND_COLOUR)
     title = render_text("Insidia: Your partner in math", 40, font=TITLE)
     WIN.blit(title, (sidebar_offset + 80, 80))
-    WIN.blit(graph.create((-10, 10), (-5, 5), scale_x=sliders[0].value(), scale_y=sliders[1].value()),
+    WIN.blit(graph.create((-15, 15), (-5, 5), [Relation(Eq(sympify("sin(x)"), sympify("y")), (26, 87, 176))], scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
              (sidebar_offset + 80, 190))
     graph.set_pos((sidebar_offset + 80, 190))
     accumulated = 0
-    for slider in sliders:
+    for slider in graph.get_sliders():
         surface = slider.create()
         WIN.blit(surface, (sidebar_offset + 700, 190 + (accumulated)))
         slider.set_pos((sidebar_offset + 700, 190 + (accumulated)))
@@ -165,9 +168,6 @@ def main():
     clicked = None
 
     graph = Graph("", (600, 300))
-    scale_x_slider = Slider(25, 100, 200, 10, 10)
-    scale_y_slider = Slider(25, 100, 200, 10, 10)
-    sliders = [scale_x_slider, scale_y_slider]
 
     while running:
 
@@ -206,61 +206,11 @@ def main():
                             current_state = state
 
         if current_state == HOME:
-            draw_home(230 if sidebar_state == EXTENDED else 0,
-                      graph, [scale_x_slider, scale_y_slider])
+            draw_home(230 if sidebar_state == EXTENDED else 0, graph)
 
             buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
 
-            if clicked == None:
-                hovered = False
-                if graph.viewing_surface.get_rect(topleft=graph.get_pos()).collidepoint(pygame.mouse.get_pos()):
-                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEALL)
-                    hovered = True
-                for slider in sliders:
-                    if slider.current_surface.get_rect(topleft=slider.get_pos()).collidepoint(pygame.mouse.get_pos()):
-                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEWE)
-                        hovered = True
-
-            pygame.mouse.set_cursor(
-                pygame.SYSTEM_CURSOR_ARROW) if not hovered else None
-
-            if graph.get_clicked():
-                pygame.mouse.set_visible(False)
-                last_pos = graph.get_mouse_pos()
-                graph.shift_x(pygame.mouse.get_pos()[0] - last_pos[0])
-                graph.shift_y(pygame.mouse.get_pos()[1] - last_pos[1])
-                graph.set_clicked(True, pygame.mouse.get_pos())
-
-            if buttons_pressed[0]:
-                for slider in sliders:
-                    if slider == clicked or clicked == None:
-                        if slider.current_surface.get_rect(topleft=slider.get_pos()).collidepoint(pygame.mouse.get_pos()):
-                            slider.set_clicked(True)
-                            clicked = slider
-                if graph == clicked or clicked == None:
-                    if graph.viewing_surface.get_rect(topleft=graph.get_pos()).collidepoint(pygame.mouse.get_pos()):
-                        graph.set_clicked(True, pygame.mouse.get_pos())
-                        clicked = graph
-            else:
-                pygame.mouse.set_visible(True)
-                clicked = None
-                if graph.get_clicked():
-                    graph.set_clicked(False)
-                for slider in sliders:
-                    if slider.get_clicked():
-                        slider.set_clicked(False)
-
-            for slider in sliders:
-                if slider.get_clicked():
-                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEWE)
-                    if pygame.mouse.get_pos()[0] <= slider.get_pos()[0] + slider.radius:
-                        slider.current_x = slider.radius
-                        continue
-                    if pygame.mouse.get_pos()[0] >= slider.get_pos()[0] + slider.size_x + slider.radius:
-                        slider.current_x = slider.size_x + slider.radius
-                        continue
-                    slider.current_x = pygame.mouse.get_pos()[
-                        0] - slider.get_pos()[0]
+            clicked = graph.handle_changes(buttons_pressed, clicked)
 
         if current_state == SCIENTIFIC:
             draw_scientific()
