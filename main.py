@@ -1,6 +1,7 @@
 import os
 import sys
 import requests
+import time
 
 import pygame
 from pygame.locals import *
@@ -61,6 +62,9 @@ HOME, SCIENTIFIC, GRAPHING, SETTINGS = 0, 1, 2, 3
 RETRACTED, EXTENDED = 0, 1
 SIDEBAR_SURFACE, SIDEBAR_BUTTON, SIDEBAR_PAGES = 0, 1, 2
 
+Rel = Relation(
+    Eq(sympify("sin(y)"), sympify("x")), (26, 87, 176))
+
 
 # Returns a surface with text in the game font
 def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
@@ -118,7 +122,7 @@ def draw_home(sidebar_offset, graph):
     WIN.fill(BACKGROUND_COLOUR)
     title = render_text("Insidia: Your partner in math", 40, font=TITLE)
     WIN.blit(title, (sidebar_offset + 80, 80))
-    WIN.blit(graph.create((-15, 15), (-5, 5), [Relation(Eq(sympify("sin(x)"), sympify("y")), (26, 87, 176))], scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
+    WIN.blit(graph.create((-30, 30), (-30, 30), [Rel], scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
              (sidebar_offset + 80, 190))
     graph.set_pos((sidebar_offset + 80, 190))
     accumulated = 0

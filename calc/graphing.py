@@ -1,7 +1,9 @@
 import os
 import pygame
-from symengine import Symbol
+from symengine import Symbol, sympify, I
 from widgets.slider import Slider
+from multiprocessing import Process
+import time
 
 
 # RGB colour constants
@@ -53,6 +55,7 @@ class Graph:
     clicked: bool
     sliders: list
     tooltips: list
+    points: list
 
     def __init__(self, formula, size) -> None:
         self.formula = formula
@@ -67,9 +70,10 @@ class Graph:
         self.pos = None
         self.mouse_pos = None
         self.clicked = False
-        self.sliders = [Slider(10, 100, 200, 10, 10, default=25),
-                        Slider(10, 100, 200, 10, 10, default=25)]
+        self.sliders = [Slider(10, 100, 200, 10, 10, default=40),
+                        Slider(10, 100, 200, 10, 10, default=40)]
         self.tooltips = []
+        self.points = None
 
     def get_clicked(self) -> bool:
         return self.clicked
@@ -104,40 +108,61 @@ class Graph:
         self.offset_x, self.offset_y = 0, 0
 
     def sketch(self, func_domain, func_range, relation, scale_x, scale_y, graph_surface, viewport, viewport_max) -> tuple:
-        increment = 1
         origin = (self.plotting_size_x/2, self.plotting_size_y/2)
-        minimum = origin[0] + (func_domain[0]*scale_x)
-        maximum = origin[0] + (func_domain[1]*scale_x)
-        x_sym = Symbol('x')
-        y_values = relation.f()
-        for point in y_values.args:
-            points = []
-            i = minimum
-            while i <= maximum:
-                x = (i-origin[0])/scale_x
-                y = point.xreplace({x_sym: x})
-                if not y.is_real:
-                    if len(points) > 1:
-                        pygame.draw.aalines(
-                            graph_surface, BLACK, False, points, 2)
-                    points = []
-                    i += increment
-                    continue
-                real_y = origin[1] - (y*scale_y)
-                scaled_range = (origin[1] + (func_range[0]*scale_y),
-                                origin[1] + (func_range[1]*scale_y))
-                if real_y < scaled_range[0] or real_y > scaled_range[1]:
-                    if len(points) > 1:
-                        pygame.draw.aalines(
-                            graph_surface, BLACK, False, points, 2)
-                    points = []
-                    i += increment
-                    continue
-                if in_x_viewport((int(i), int(real_y)), viewport, viewport_max):
-                    points.append((int(i), int(real_y)))
-                i += increment
-            if len(points) > 1:
-                pygame.draw.aalines(graph_surface, BLACK, False, points, 2)
+        all_x = [
+            i/100 for i in range(func_domain[0]*100, (func_domain[1]*100)+1)]
+        all_y = [
+            i/100 for i in range(func_range[0]*100, (func_range[1]*100)+1)]
+        x_exprs, y_exprs = relation.f()
+
+        symbol_x = Symbol('x')
+        symbol_y = Symbol('y')
+
+        if self.points is None:
+
+            lines_to_draw = []
+
+            for expr in y_exprs.args:
+                points = []
+                for x_val in all_x:
+                    y_val = expr.xreplace({symbol_x: x_val})
+                    if not y_val.is_real:
+                        if len(points) > 1:
+                            lines_to_draw.append(points)
+                        points = []
+                        continue
+                    if y_val < all_y[0] or y_val > all_y[-1]:
+                        if len(points) > 1:
+                            lines_to_draw.append(points)
+                        points = []
+                        continue
+                    points.append((x_val, y_val))
+                if len(points) > 1:
+                    lines_to_draw.append(points)
+
+            for expr in x_exprs.args:
+                points = []
+                for y_val in all_y:
+                    x_val = expr.xreplace({symbol_y: y_val})
+                    if not x_val.is_real:
+                        if len(points) > 1:
+                            lines_to_draw.append(points)
+                        points = []
+                        continue
+                    if x_val < all_x[0] or x_val > all_x[-1]:
+                        if len(points) > 1:
+                            lines_to_draw.append(points)
+                        points = []
+                        continue
+                    points.append((x_val, y_val))
+                if len(points) > 1:
+                    lines_to_draw.append(points)
+
+            self.points = lines_to_draw
+
+        for line in self.points:
+            pygame.draw.aalines(graph_surface, BLACK, False, [(
+                origin[0] + (point[0]*scale_x), origin[1] - (point[1]*scale_y)) for point in line], 2)
 
     def create(self, func_domain, func_range, relations, scale_x=25, scale_y=25) -> pygame.Surface:
 
@@ -146,8 +171,8 @@ class Graph:
         if self.cache != {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y, 'offset_x': self.offset_x, 'offset_y': self.offset_y}:
             domain_size = len(range(func_domain[0], func_domain[1] + 1))
             range_size = len(range(func_range[0], func_range[1] + 1))
-            plotting_size_x = (domain_size * 5) * scale_x
-            plotting_size_y = (range_size * 5) * scale_y
+            plotting_size_x = (domain_size) * scale_x
+            plotting_size_y = (range_size) * scale_y
             self.plotting_size_x = plotting_size_x
             self.plotting_size_y = plotting_size_y
         else:
@@ -166,6 +191,7 @@ class Graph:
                         ((plotting_size_y/2)-self.offset_y)-(self.size[1]/2)+self.size[1])
 
         # Create surface and fill background
+
         graph_surface = pygame.Surface(overarching_size)
         graph_surface.fill(BACKGROUND_GREY)
 
@@ -185,7 +211,7 @@ class Graph:
             if scale_x < 15 and num % 5 != 0:
                 continue
             if scale_x > 75:
-                half = num / 2
+                half = num - 0.5
                 if half > 0:
                     coordinate = (origin[0] + (scale_x*half), origin[1])
                     if in_viewport(coordinate, viewport, viewport_max):
@@ -216,13 +242,14 @@ class Graph:
             if scale_y < 15 and num % 5 != 0:
                 continue
             if scale_y > 75:
-                half = num / 2
+                half = num - 0.5
                 if half > 0:
                     coordinate = (origin[0], origin[1] - (scale_y*half))
                     if in_viewport(coordinate, viewport, viewport_max):
                         pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
-                        graph_surface.blit(render_text(
-                            str(half), 10, color=DARK_GREY), (coordinate[0] - 12, coordinate[1] - 5))
+                        text = render_text(str(half), 10, color=DARK_GREY)
+                        graph_surface.blit(
+                            text, (coordinate[0] - 12 - text.get_width(), coordinate[1] - 5))
                 if half < 0:
                     coordinate = (origin[0], origin[1] + (scale_y*abs(half)))
                     if in_viewport(coordinate, viewport, viewport_max):
@@ -233,8 +260,9 @@ class Graph:
                 coordinate = (origin[0], origin[1] - (scale_y*num))
                 if in_viewport(coordinate, viewport, viewport_max):
                     pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
-                    graph_surface.blit(render_text(
-                        str(num), 10, color=DARK_GREY), (coordinate[0] - 12, coordinate[1] - 5))
+                    text = render_text(str(num), 10, color=DARK_GREY)
+                    graph_surface.blit(
+                        text, (coordinate[0] - 12 - text.get_width(), coordinate[1] - 5))
             if num < 0:
                 coordinate = (origin[0], origin[1] + (scale_y*abs(num)))
                 if in_viewport(coordinate, viewport, viewport_max):
@@ -244,8 +272,8 @@ class Graph:
 
         # Sketch actual relations
         for relation in relations:
-            self.tooltips = self.sketch(func_domain, func_range,
-                                        relation, scale_x, scale_y, graph_surface, viewport, viewport_max)
+            self.sketch(func_domain, func_range, relation, scale_x,
+                        scale_y, graph_surface, viewport, viewport_max)
 
         master_surface.blit(
             graph_surface, (-(overarching_size[0]/2) + (self.size[0]/2) + self.offset_x, -(overarching_size[1]/2) + (self.size[1]/2) + self.offset_y))
@@ -255,7 +283,6 @@ class Graph:
 
         self.last_surface = graph_surface
         self.viewing_surface = master_surface
-
         return master_surface
 
     def handle_changes(self, buttons_pressed, clicked) -> object:
