@@ -15,8 +15,16 @@ class Relation:
         self.colour = colour
         x = Symbol('x')
         y = Symbol('y')
-        self.x_values = sympify(solveset(self.get_expression(), x))
-        self.y_values = sympify(solveset(self.get_expression(), y))
+
+        try:
+            self.x_values = sympify(solveset(self.get_expression(), x))
+        except:
+            self.x_values = sympify(EmptySet)
+
+        try:
+            self.y_values = sympify(solveset(self.get_expression(), y))
+        except:
+            self.y_values = sympify(EmptySet)
 
     def get_expression(self) -> object:
         return self.equation

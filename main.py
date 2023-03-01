@@ -63,7 +63,7 @@ RETRACTED, EXTENDED = 0, 1
 SIDEBAR_SURFACE, SIDEBAR_BUTTON, SIDEBAR_PAGES = 0, 1, 2
 
 Rel = Relation(
-    Eq(sympify("sin(y)"), sympify("x")), (26, 87, 176))
+    Eq(sympify("y"), sympify("sin(x)")), (26, 87, 176))
 
 
 # Returns a surface with text in the game font
