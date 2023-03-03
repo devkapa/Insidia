@@ -4,6 +4,7 @@ import os
 
 DARK_GREY = (100, 100, 100)
 WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
 BACKGROUND_COLOUR = (14, 17, 23)
 
 # Fonts
@@ -18,6 +19,16 @@ def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
     return text
 
 
+# Fill all pixels of the surface with color, preserve transparency.
+def fill(surface, color):
+    width, height = surface.get_size()
+    r, g, b = color
+    for x in range(width):
+        for y in range(height):
+            a = surface.get_at((x, y))[3]
+            surface.set_at((x, y), pygame.Color(r, g, b, a))
+
+
 class Button:
 
     icon: pygame.Surface
@@ -29,6 +40,7 @@ class Button:
     def __init__(self, icon, size, event, mode, label) -> None:
         self.icon = pygame.transform.scale(pygame.image.load(
             icon).convert_alpha(), (size[0], size[1]))
+        fill(self.icon, WHITE)
         self.size = size
         self.event = pygame.event.Event(event)
         self.mode = mode
@@ -50,13 +62,15 @@ class Button:
         self.pos = (left, top)
         label = render_text(self.label, 20)
         button_surface = pygame.Surface(
-            (self.size[0], self.size[1] + label.get_height() + 10))
+            (self.size[0], self.size[1]))
         button_surface.fill(BACKGROUND_COLOUR)
         self.rect = pygame.Rect(0, 0, self.size[0], self.size[1])
-        colour = WHITE if mode == self.mode or self.hovering else DARK_GREY
+        colour = BLACK if mode == self.mode or self.hovering else DARK_GREY
         pygame.draw.rect(button_surface, colour, self.rect, border_radius=10)
-        button_surface.blit(self.icon, (0, 0))
         if self.hovering:
-            button_surface.blit(label, (0, self.size[1] + 10))
+            button_surface.blit(
+                label, (self.size[0]/2 - label.get_width()/2, self.size[1]/2 - label.get_height()/2))
+        else:
+            button_surface.blit(self.icon, (0, 0))
         self.last_surface = button_surface
         surface.blit(button_surface, (left, top))

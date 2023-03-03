@@ -10,10 +10,12 @@ class Relation:
     y_values: object
     rhs: str
     lhs: str
+    original_str: str
 
     def __init__(self, equation, colour) -> None:
         self.equality(equation)
         self.colour = colour
+        self.original_str = equation
         x = Symbol('x')
         y = Symbol('y')
 
@@ -26,6 +28,9 @@ class Relation:
             self.y_values = sympify(solveset(self.get_expression(), y))
         except:
             self.y_values = EmptySet
+
+    def get_original(self) -> str:
+        return self.original_str
 
     def equality(self, expression: str) -> object:
         expression = expression.split("=")

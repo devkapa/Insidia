@@ -1,0 +1,95 @@
+import pygame
+import os
+
+
+# RGB colour constants
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+LIGHT_GREY = (200, 200, 200)
+BACKGROUND_COLOUR = (14, 17, 23)
+
+# Fonts
+TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
+    'Oxanium-Regular.ttf', 'press-start.ttf'
+
+
+# Returns a surface with text in the game font
+def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
+    font = pygame.font.Font(os.path.join('assets', 'fonts', font), px)
+    text = font.render(text, False, color)
+    text.set_alpha(alpha) if alpha is not None else None
+    return text
+
+
+class Textbox:
+
+    value: str
+    px: int
+    active: bool
+    colour: tuple
+    rect: pygame.Rect
+    pos: tuple
+    default: str
+    last_surface: pygame.Surface
+
+    WHITELIST = [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_CARET, pygame.K_ASTERISK, pygame.K_LEFTPAREN, pygame.K_RIGHTPAREN, pygame.K_PLUS, pygame.K_MINUS, pygame.K_SLASH, pygame.K_EQUALS, pygame.K_PERIOD, pygame.K_SPACE, pygame.K_a,
+                 pygame.K_b, pygame.K_c, pygame.K_d, pygame.K_e, pygame.K_f, pygame.K_g, pygame.K_h, pygame.K_i, pygame.K_j, pygame.K_k, pygame.K_l, pygame.K_m, pygame.K_n, pygame.K_o, pygame.K_p, pygame.K_q, pygame.K_r, pygame.K_s, pygame.K_t, pygame.K_u, pygame.K_v, pygame.K_w, pygame.K_x, pygame.K_y, pygame.K_z]
+
+    NUMBERS_ONLY = [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4,
+                    pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_MINUS]
+
+    def __init__(self, size, px, title, colour, default=None) -> None:
+        self.size = size
+        self.px = px
+        self.value = "" if default is None else default
+        self.default = default
+        self.active = False
+        self.title = title
+        self.colour = colour
+        self.pos = None
+        self.last_surface = None
+
+    def get_pos(self) -> tuple:
+        return self.pos
+
+    def set_active(self, bool) -> None:
+        self.active = bool
+
+    def create(self, surface, left, top) -> None:
+        self.pos = (left, top)
+        title = render_text(self.title, self.px, color=self.colour)
+        textbox_surface = pygame.Surface((
+            self.size[0], self.size[1] + title.get_height() + 5))
+        textbox_surface.fill(BACKGROUND_COLOUR)
+        textbox_surface.blit(title, (0, 0))
+        self.rect = pygame.Rect(0, title.get_height() + 5,
+                                self.size[0], self.size[1])
+        pygame.draw.rect(
+            textbox_surface, WHITE if not self.active else LIGHT_GREY, self.rect)
+        if len(self.value) > 0:
+            text = render_text(
+                self.value + ("|" if self.active else ""), self.px, color=BLACK)
+            if text.get_width() > self.size[0]:
+                textbox_surface.blit(
+                    text, (-(text.get_width() - self.size[0]), title.get_height() + self.size[1]/2))
+            else:
+                textbox_surface.blit(
+                    text, (5, title.get_height() + self.size[1]/2))
+        self.last_surface = textbox_surface
+        surface.blit(textbox_surface, (left, top))
+
+    def add_text(self, key) -> None:
+        self.value += key
+
+    def backspace(self) -> None:
+        if len(self.value) > 0:
+            self.value = self.value[:-1]
+
+    def reset(self) -> None:
+        self.value = ""
+
+    def get_text(self) -> str:
+        return self.value
+
+    def get_colour(self) -> tuple:
+        return self.colour

@@ -9,6 +9,9 @@ from pygame.locals import *
 from calc.graphing import Graph
 from calc.relations import Relation
 
+from widgets.textbox import Textbox
+from tkinter import messagebox
+
 
 # Versioning
 version = "alpha-0.4"
@@ -84,7 +87,7 @@ pygame.display.update()
 FPS = 120
 
 # Enum values for code readability
-HOME, GRAPHING, SETTINGS = 0, 1, 2
+HOME, GRAPHING = 0, 1
 RETRACTED, EXTENDED = 0, 1
 SIDEBAR_SURFACE, SIDEBAR_BUTTON, SIDEBAR_PAGES = 0, 1, 2
 
@@ -111,7 +114,7 @@ def get_sidebar(sidebar, status):
                              close_text.get_width() - SIDEBAR_PADDING, SIDEBAR_PADDING))
 
         # Pages
-        pages = ["Home", "Graphing Calculator", "Settings"]
+        pages = ["Home", "Graphing Calculator"]
         pygame.display.set_caption(f"{pages[status]} • Insidia")
         for index, page in enumerate(pages):
             page_button = pygame.Surface(
@@ -160,10 +163,8 @@ def draw_home(sidebar_offset, graph):
     WIN.blit(subtitle, (sidebar_offset + 80, 530))
 
 
-def draw_graphing(sidebar_offset, graph):
+def draw_graphing(sidebar_offset, graph, rels, func_domain, func_range):
     WIN.fill(BACKGROUND_COLOUR)
-    WIN.blit(graph.create((-10, 10), (-2, 2), home_rels, (sidebar_offset + 70, 50), scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
-             (sidebar_offset + 70, 50))
     graph.set_pos((sidebar_offset + 70, 50))
     y_accumulated = 0
     for slider in graph.get_sliders():
@@ -174,14 +175,32 @@ def draw_graphing(sidebar_offset, graph):
             (sidebar_offset + graph.size[0] + 90, 50 + y_accumulated))
         y_accumulated += surface.get_height() + 20
     x_accumulated = 0
-    for button in graph.get_buttons():
+    for i, button in enumerate(graph.get_buttons()):
+        if i != 3:
+            button.create(WIN, graph.get_mode(), sidebar_offset + graph.size[0] + 100 +
+                          x_accumulated, 50 + y_accumulated)
+            if i < 2:
+                x_accumulated += button.size[0] + 15
+            continue
         button.create(WIN, graph.get_mode(), sidebar_offset + graph.size[0] + 100 +
-                      x_accumulated, 50 + y_accumulated)
-        x_accumulated += button.size[0] + 15
-
-
-def draw_settings():
-    WIN.fill(BACKGROUND_COLOUR)
+                      x_accumulated + 5, 50 + y_accumulated + 80)
+    y_accumulated += 70
+    x_accumulated = 0
+    for i, textbox in enumerate(graph.get_d_r_boxes()):
+        textbox.create(WIN, sidebar_offset +
+                       graph.size[0] + 100 + x_accumulated, 50 + y_accumulated)
+        if i == 1:
+            y_accumulated += 60
+            x_accumulated -= textbox.size[0] + 15
+            continue
+        x_accumulated += textbox.size[0] + 15
+    y_accumulated += 70
+    for textbox in graph.get_textboxes():
+        textbox.create(WIN, sidebar_offset +
+                       graph.size[0] + 100, 50 + y_accumulated)
+        y_accumulated += textbox.size[1] + 40
+    WIN.blit(graph.create(func_domain, func_range, list(rels.values()), (sidebar_offset + 70, 50), scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
+             (sidebar_offset + 70, 50))
 
 
 def main():
@@ -212,7 +231,11 @@ def main():
     clicked = None
 
     demo_graph = Graph((600, 300))
-    calc_graph = Graph((650, 700))
+    calc_graph = Graph((650, 700), textboxes=5, clear=True)
+
+    rels = {}
+    last_domain = (-10, 10)
+    last_range = (-5, 5)
 
     while running:
 
@@ -242,6 +265,48 @@ def main():
                 demo_graph.reset()
                 calc_graph.reset()
 
+            if event.type == Graph.CLEAR_EVENT:
+                for textbox in calc_graph.get_textboxes():
+                    textbox.reset()
+                for textbox in calc_graph.get_d_r_boxes():
+                    textbox.value = textbox.default
+
+            if event.type == pygame.KEYDOWN:
+                for textbox in calc_graph.get_textboxes():
+                    if textbox.active:
+                        if event.key == pygame.K_RETURN:
+                            textbox.set_active(False)
+                            try:
+                                if textbox.get_text() != "":
+                                    if textbox not in rels:
+                                        rels[textbox] = Relation(
+                                            textbox.get_text(), textbox.get_colour())
+                                    else:
+                                        if rels[textbox].get_original() != textbox.get_text():
+                                            rels[textbox] = Relation(
+                                                textbox.get_text(), textbox.get_colour())
+                                else:
+                                    if textbox in rels:
+                                        rels.pop(textbox)
+                            except:
+                                messagebox.showerror(
+                                    "Error", f"Thats an invalid expression.\n\"{textbox.get_text()}\"\nIf you are multiplying two terms (e.g. 2sin(x)), try adding a * between them. (2*sin(x))")
+                                textbox.set_active(True)
+                                if textbox in rels:
+                                    rels.pop(textbox)
+                        elif event.key == pygame.K_BACKSPACE:
+                            textbox.backspace()
+                        elif event.key in Textbox.WHITELIST:
+                            textbox.add_text(event.unicode)
+                for textbox in calc_graph.get_d_r_boxes():
+                    if textbox.active:
+                        if event.key == pygame.K_RETURN:
+                            textbox.set_active(False)
+                        elif event.key == pygame.K_BACKSPACE:
+                            textbox.backspace()
+                        elif event.key in Textbox.NUMBERS_ONLY:
+                            textbox.add_text(event.unicode)
+
             # Check if the user clicked the mouse
             if event.type == pygame.MOUSEBUTTONDOWN:
 
@@ -260,7 +325,7 @@ def main():
 
                 # Change program state if sidebar page button is pressed
                 if len(sidebar) > SIDEBAR_PAGES:
-                    for state in [HOME, GRAPHING, SETTINGS]:
+                    for state in [HOME, GRAPHING]:
                         if sidebar[SIDEBAR_PAGES][state].collidepoint(event.pos):
                             current_state = state
 
@@ -270,12 +335,62 @@ def main():
             clicked = demo_graph.handle_changes(buttons_pressed, clicked)
 
         if current_state == GRAPHING:
-            draw_graphing(230 if sidebar_state == EXTENDED else 0, calc_graph)
+            for textbox in calc_graph.get_textboxes():
+                if not textbox.active:
+                    try:
+                        if textbox.get_text() != "":
+                            if textbox not in rels:
+                                rels[textbox] = Relation(
+                                    textbox.get_text(), textbox.get_colour())
+                            else:
+                                if rels[textbox].get_original() != textbox.get_text():
+                                    rels[textbox] = Relation(
+                                        textbox.get_text(), textbox.get_colour())
+                        else:
+                            if textbox in rels:
+                                rels.pop(textbox)
+                    except:
+                        messagebox.showerror(
+                            "Error", f"Thats an invalid expression.\n\"{textbox.get_text()}\"\nIf you are multiplying two terms (e.g. 2sin(x)), try adding a * between them. (2*sin(x))")
+                        textbox.set_active(True)
+                        if textbox in rels:
+                            rels.pop(textbox)
+            active = False
+            for textbox in calc_graph.get_d_r_boxes():
+                if textbox.active:
+                    active = True
+            if not active:
+                x_min, x_max, y_min, y_max = calc_graph.get_d_r_boxes()
+                try:
+                    if int(x_min.get_text()) >= int(x_max.get_text()):
+                        x_min.value = str(last_domain[0])
+                        x_max.value = str(last_domain[1])
+                        messagebox.showerror(
+                            "Error", "Minimum X value must be less than the Maximum X.")
+                    if int(y_min.get_text()) >= int(y_max.get_text()):
+                        y_min.value = str(last_range[0])
+                        y_max.value = str(last_range[1])
+                        messagebox.showerror(
+                            "Error", "Minimum Y value must be less than the Maximum Y.")
+                    func_domain = (int(x_min.get_text()),
+                                   int(x_max.get_text()))
+                    func_range = (int(y_min.get_text()), int(y_max.get_text()))
+                    last_domain = func_domain
+                    last_range = func_range
+                except ValueError:
+                    func_domain = last_domain
+                    func_range = last_range
+                    x_min.value = str(last_domain[0])
+                    x_max.value = str(last_domain[1])
+                    y_min.value = str(last_range[0])
+                    y_max.value = str(last_range[1])
+            else:
+                func_domain = last_domain
+                func_range = last_range
+            draw_graphing(230 if sidebar_state ==
+                          EXTENDED else 0, calc_graph, rels, func_domain, func_range)
             buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
             clicked = calc_graph.handle_changes(buttons_pressed, clicked)
-
-        if current_state == SETTINGS:
-            draw_settings()
 
         # Draw the sidebar onto the screen
         if sidebar_state == EXTENDED:

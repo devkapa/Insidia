@@ -4,17 +4,46 @@ from symengine import Symbol, sympify
 from threading import Thread
 from widgets.slider import Slider
 from widgets.button import Button
+from widgets.textbox import Textbox
 from tkinter import messagebox
+from random import choice
 
 
 # RGB colour constants
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-ORANGE = (255, 207, 85)
-PURPLE = (189, 145, 255)
-RED = (255, 100, 128)
 DARK_GREY = (100, 100, 100)
 BACKGROUND_GREY = (239, 239, 239)
+
+
+# Graph curve colours
+RED = (139, 0, 0)
+ORANGE = (255, 140, 0)
+YELLOW = (184, 134, 11)
+GREEN = (0, 100, 0)
+BLUE = (0, 0, 139)
+PURPLE = (148, 0, 211)
+CYAN = (0, 139, 139)
+MAGENTA = (139, 0, 139)
+GRAY = (169, 169, 169)
+BROWN = (101, 67, 33)
+TURQUOISE = (0, 206, 209)
+GOLD = (218, 165, 32)
+INDIGO = (75, 0, 130)
+SALMON = (233, 150, 122)
+SEA_GREEN = (143, 188, 143)
+SLATE_BLUE = (72, 61, 139)
+OLIVE_GREEN = (85, 107, 47)
+LIME_GREEN = (50, 205, 50)
+SKY_BLUE = (135, 206, 235)
+PINK = (255, 20, 147)
+BEIGE = (205, 183, 158)
+TAN = (138, 90, 34)
+CORAL = (205, 91, 69)
+LAVENDER = (150, 123, 182)
+
+COLOURS = [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, CYAN, MAGENTA, GRAY, BROWN, TURQUOISE, GOLD, INDIGO,
+           SALMON, SEA_GREEN, SLATE_BLUE, OLIVE_GREEN, LIME_GREEN, SKY_BLUE, PINK, BEIGE, TAN, CORAL, LAVENDER]
 
 # Fonts
 TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
@@ -46,8 +75,8 @@ def low_res_warning(x):
 class Graph:
 
     PAN, TOOLTIP = 0, 1
-    PAN_EVENT, TOOLTIP_EVENT, RESET_EVENT = pygame.USEREVENT + \
-        1, pygame.USEREVENT + 2, pygame.USEREVENT + 3
+    PAN_EVENT, TOOLTIP_EVENT, RESET_EVENT, CLEAR_EVENT = pygame.USEREVENT + \
+        1, pygame.USEREVENT + 2, pygame.USEREVENT + 3, pygame.USEREVENT + 4
 
     mode: int
     size: tuple
@@ -61,10 +90,12 @@ class Graph:
     clicked: bool
     sliders: list
     buttons: list
+    textboxes: list
+    d_r_boxes: list
     lines: dict
     alternate: dict
 
-    def __init__(self, size) -> None:
+    def __init__(self, size, textboxes=0, clear=False) -> None:
         self.mode = self.PAN
         self.size = size
         self.offset_x, self.offset_y = 0, 0
@@ -79,15 +110,39 @@ class Graph:
         self.clicked = False
         self.sliders = [Slider(1, 200, 200, 10, 10, default=40, name="X Axis Scale"),
                         Slider(1, 200, 200, 10, 10, default=40, name="Y Axis Scale")]
-        self.buttons = [Button(os.path.join('assets', 'textures', 'pan_cursor.png'), (50, 50), pygame.USEREVENT + 1, 0, "Pan"),
+        self.buttons = [Button(os.path.join('assets', 'textures', 'pan_cursor.png'), (55, 50), self.PAN_EVENT, 0, "Pan"),
                         Button(os.path.join(
-                            'assets', 'textures', 'tooltip_cursor.png'), (50, 50), pygame.USEREVENT + 2, 1, "Point"),
-                        Button(os.path.join('assets', 'textures', 'reset.png'), (50, 50), pygame.USEREVENT + 3, -1, "Reset")]
+                            'assets', 'textures', 'tooltip_cursor.png'), (55, 50), self.TOOLTIP_EVENT, 1, "Point"),
+                        Button(os.path.join('assets', 'textures', 'reset.png'),
+                               (55, 50), self.RESET_EVENT, -1, "Origin")]
+        self.textboxes = []
+        self.d_r_boxes = [Textbox((60, 30), 18, "X-Min", WHITE, default="-10"),
+                          Textbox((60, 30), 18, "X-Max", WHITE, default="10"),
+                          Textbox((60, 30), 18, "Y-Min", WHITE, default="-5"),
+                          Textbox((60, 30), 18, "Y-Max", WHITE, default="5")]
         self.lines = {}
         self.alternate = {}
+        if textboxes != 0:
+            for i in range(textboxes):
+                self.add_textbox()
+        if clear:
+            self.add_clear_button()
 
     def extend(self, size_x) -> None:
         self.size = (size_x, self.size[1])
+
+    def get_d_r_boxes(self) -> list:
+        return self.d_r_boxes
+
+    def add_textbox(self) -> None:
+        self.textboxes.append(
+            Textbox((200, 30), 18, "Equation " + str(len(self.textboxes) + 1), choice(COLOURS)))
+
+    def remove_textbox(self, textbox) -> None:
+        self.textboxes.remove(textbox)
+
+    def get_textboxes(self) -> list:
+        return self.textboxes
 
     def get_clicked(self) -> bool:
         return self.clicked
@@ -117,6 +172,11 @@ class Graph:
     def get_buttons(self) -> list:
         return self.buttons
 
+    def add_clear_button(self) -> list:
+        clear_btn = Button(os.path.join(
+            'assets', 'textures', 'broom.png'), (50, 110), self.CLEAR_EVENT, -1, "Clear")
+        self.buttons.append(clear_btn)
+
     def shift_x(self, val) -> None:
         if self.offset_x + val > self.plotting_size_x/2 - self.size[0]/2:
             self.offset_x = self.plotting_size_x/2 - self.size[0]/2
@@ -140,14 +200,16 @@ class Graph:
         for slider in self.sliders:
             slider.reset()
 
-    def sketch(self, all_x, all_y, relation, scale_x, scale_y, graph_surface) -> tuple:
+    def sketch(self, all_x, all_y, relation, scale_x, scale_y, graph_surface, change) -> tuple:
         origin = (self.plotting_size_x/2, self.plotting_size_y/2)
         x_exprs, y_exprs = relation.f()
 
         symbol_x = Symbol('x')
         symbol_y = Symbol('y')
 
-        if relation not in self.lines and relation not in self.alternate:
+        self.all_value_cache = []
+
+        if (relation not in self.lines and relation not in self.alternate) or change:
 
             lines_to_draw = []
 
@@ -205,12 +267,17 @@ class Graph:
                             if ans.is_real and -0.1 <= ans <= 0.1:
                                 alternate_renders.append((x_val, y_val))
                     self.alternate[relation] = alternate_renders
+                    if len(alternate_renders) > 0:
+                        if len(self.lines[relation]) == 0 and relation in self.alternate:
+                            for point in self.alternate[relation]:
+                                pygame.draw.circle(
+                                    graph_surface, relation.get_colour(), (origin[0] + (point[0]*scale_x), origin[1] - (point[1]*scale_y)), 1)
+                        return str(relation.get_expression())
 
         if len(self.lines[relation]) == 0 and relation in self.alternate:
             for point in self.alternate[relation]:
                 pygame.draw.circle(
                     graph_surface, relation.get_colour(), (origin[0] + (point[0]*scale_x), origin[1] - (point[1]*scale_y)), 1)
-            return str(relation.get_expression())
 
         for line in self.lines[relation]:
             pygame.draw.aalines(graph_surface, relation.get_colour(), False, [(
@@ -241,7 +308,7 @@ class Graph:
             relative_y = mouse_y - offset[1] + relative_y_offset
             x_val = round((relative_x - origin[0])/scale_x, 2)
 
-            if relative_x_offset <= relative_x <= relative_x_offset + self.size[0] and 0 <= relative_y <= self.size[1]:
+            if relative_x_offset <= relative_x <= relative_x_offset + self.size[0] and relative_y_offset <= relative_y <= relative_y_offset + self.size[1]:
                 for eq in self.lines:
                     for line in self.lines[eq]:
                         for point in line:
@@ -250,13 +317,17 @@ class Graph:
                                 tooltips.append([point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()), render_text(
                                     "X: " + str(x_val), 14, color=BLACK), render_text("Y: " + str(y_val), 14, color=BLACK)])
 
-        if self.cache != {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y, 'offset_x': self.offset_x, 'offset_y': self.offset_y}:
-            domain_size = len(range(func_domain[0], func_domain[1] + 1))
-            range_size = len(range(func_range[0], func_range[1] + 1))
-            plotting_size_x = (domain_size) * scale_x
+        if self.cache != {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y, 'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}:
+            if len(range(0, func_domain[1])) > len(range(func_domain[0], 0)):
+                plotting_size_x = (len(range(0, func_domain[1]))+1)*2*scale_x
+            else:
+                plotting_size_x = (len(range(func_domain[0], 0))+1)*2*scale_x
             if plotting_size_x < self.size[0]:
                 plotting_size_x = self.size[0]
-            plotting_size_y = (range_size) * scale_y
+            if len(range(0, func_range[1])) > len(range(func_range[0], 0)):
+                plotting_size_y = (len(range(0, func_range[1]))+1)*2*scale_y
+            else:
+                plotting_size_y = (len(range(func_range[0], 0))+1)*2*scale_y
             if plotting_size_y < self.size[1]:
                 plotting_size_y = self.size[1]
             self.plotting_size_x = plotting_size_x
@@ -264,19 +335,27 @@ class Graph:
         else:
             surf = self.last_surface.copy()
 
+            prev_rects = []
             for tooltip in tooltips:
                 point_coordinate = (
                     origin[0] + int(tooltip[0]*scale_x), origin[1] - int(tooltip[1]*scale_y))
                 pygame.draw.circle(surf, BLACK, point_coordinate, 2)
+                x_accumulated = 0
                 rect = pygame.Rect(
-                    point_coordinate[0] + 10, point_coordinate[1] + 10, tooltip[2].get_width() + 15, 65)
+                    point_coordinate[0] + 10 + x_accumulated, point_coordinate[1] + 10, tooltip[2].get_width() + 15, 65)
+                for i in prev_rects:
+                    rect.left += x_accumulated
+                    if i.colliderect(rect):
+                        x_accumulated += i.width + 10
+                rect.left = point_coordinate[0] + 10 + x_accumulated
                 pygame.draw.rect(surf, WHITE, rect)
                 surf.blit(tooltip[2], (point_coordinate[0] +
-                          15, point_coordinate[1] + 15))
+                          15 + x_accumulated, point_coordinate[1] + 15))
                 surf.blit(tooltip[3], (point_coordinate[0] +
-                          15, point_coordinate[1] + 35))
+                          15 + x_accumulated, point_coordinate[1] + 35))
                 surf.blit(tooltip[4], (point_coordinate[0] +
-                          15, point_coordinate[1] + 55))
+                          15 + x_accumulated, point_coordinate[1] + 55))
+                prev_rects.append(rect)
 
             master_surface.blit(
                 surf, (-(self.plotting_size_x/2) + (self.size[0]/2) + self.offset_x, -(self.plotting_size_y/2) + (self.size[1]/2) + self.offset_y))
@@ -379,10 +458,18 @@ class Graph:
 
         low_res = []
 
+        if 'relations' not in self.cache or self.cache['relations'] != relations:
+            self.lines = {}
+            self.alternate = {}
+
+        changed_d_r = False
+        if self.cache['func_domain'] != func_domain or self.cache['func_range'] != func_range:
+            changed_d_r = True
+
         # Sketch actual relations
         for relation in relations:
             sketch = self.sketch(all_x, all_y,
-                                 relation, scale_x, scale_y, graph_surface)
+                                 relation, scale_x, scale_y, graph_surface, changed_d_r)
             if sketch is not None:
                 low_res.append(sketch)
 
@@ -393,7 +480,7 @@ class Graph:
             graph_surface, (-(overarching_size[0]/2) + (self.size[0]/2) + self.offset_x, -(overarching_size[1]/2) + (self.size[1]/2) + self.offset_y))
 
         self.cache = {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x,
-                      'scale_y': scale_y, 'offset_x': self.offset_x, 'offset_y': self.offset_y}
+                      'scale_y': scale_y, 'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}
 
         self.last_surface = graph_surface
         self.viewing_surface = master_surface
@@ -401,13 +488,21 @@ class Graph:
 
     def handle_changes(self, buttons_pressed, clicked) -> object:
 
-        hovered = False
-        for button in self.buttons:
-            hovered = button.on_hover() if not hovered else True
-            if hovered:
-                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-
         if clicked == None:
+            hovered = False
+            for button in self.buttons:
+                hovered = button.on_hover() if not hovered else True
+                if hovered:
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+            for textbox in self.textboxes:
+                if textbox.last_surface.get_rect(topleft=textbox.get_pos()).collidepoint(pygame.mouse.get_pos()):
+                    hovered = True if not hovered else True
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
+            for textbox in self.d_r_boxes:
+                if textbox.last_surface is not None:
+                    if textbox.last_surface.get_rect(topleft=textbox.get_pos()).collidepoint(pygame.mouse.get_pos()):
+                        hovered = True if not hovered else True
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
             if self.viewing_surface.get_rect(topleft=self.get_pos()).collidepoint(pygame.mouse.get_pos()):
                 if self.mode == self.PAN:
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEALL)
@@ -432,6 +527,20 @@ class Graph:
             self.set_clicked(True, pygame.mouse.get_pos())
 
         if buttons_pressed[0]:
+            for textbox in self.textboxes:
+                if textbox.last_surface is not None:
+                    if textbox.last_surface.get_rect(topleft=textbox.get_pos()).collidepoint(pygame.mouse.get_pos()):
+                        if clicked == None:
+                            textbox.set_active(True)
+                    else:
+                        textbox.set_active(False)
+            for textbox in self.d_r_boxes:
+                if textbox.last_surface is not None:
+                    if textbox.last_surface.get_rect(topleft=textbox.get_pos()).collidepoint(pygame.mouse.get_pos()):
+                        if clicked == None:
+                            textbox.set_active(True)
+                    else:
+                        textbox.set_active(False)
             for slider in self.sliders:
                 if slider == clicked or clicked == None:
                     if slider.current_surface.get_rect(topleft=slider.get_pos()).collidepoint(pygame.mouse.get_pos()):
@@ -441,8 +550,9 @@ class Graph:
                 if self.viewing_surface.get_rect(topleft=self.get_pos()).collidepoint(pygame.mouse.get_pos()):
                     self.set_clicked(True, pygame.mouse.get_pos())
                     clicked = self
-            for button in self.buttons:
-                button.on_click()
+            if clicked == None:
+                for button in self.buttons:
+                    button.on_click()
         else:
             pygame.mouse.set_visible(True)
             clicked = None
