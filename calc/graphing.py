@@ -1,7 +1,6 @@
 import os
 import pygame
 from symengine import Symbol, sympify
-from threading import Thread
 from widgets.slider import Slider
 from widgets.button import Button
 from widgets.textbox import Textbox
@@ -474,7 +473,7 @@ class Graph:
                 low_res.append(sketch)
 
         if len(low_res) > 0:
-            Thread(target=low_res_warning, args=([low_res])).start()
+            low_res_warning(low_res)
 
         master_surface.blit(
             graph_surface, (-(overarching_size[0]/2) + (self.size[0]/2) + self.offset_x, -(overarching_size[1]/2) + (self.size[1]/2) + self.offset_y))
