@@ -1,1 +1,3 @@
 .vscode/settings.json
+calc/__pycache__/
+widgets/__pycache__/
