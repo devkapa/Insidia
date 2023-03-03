@@ -1,6 +1,5 @@
 import os
 import sys
-import requests
 
 import pygame
 from random import choice
@@ -15,7 +14,6 @@ from tkinter import messagebox
 
 # Versioning
 version = "alpha-0.4"
-# github_url = "https://api.github.com/repos/devkapa/Insidia/releases/latest"
 
 # Enable double buffer
 flags = DOUBLEBUF
@@ -216,17 +214,6 @@ def main():
     # Set the sidebar to default open
     sidebar_state = EXTENDED
     sidebar_anim_frames = 0
-
-    # Check for updates from GitHub - if this version doesn't match the latest version
-    # If there is no internet, print error but run program
-    # try:
-    #    response = requests.get(github_url, timeout=3)
-    #    if response.json()["tag_name"] != version:
-    #        update_message = "There is a new version available! Click here to download."
-    # except requests.ConnectionError:
-    #    update_message = "Cannot check for updates."
-    # except requests.Timeout:
-    #    update_message = "Cannot check for updates."
 
     clicked = None
 
