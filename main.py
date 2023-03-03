@@ -1,20 +1,17 @@
 import os
 import sys
 import requests
-import time
 
 import pygame
 from pygame.locals import *
-
-from symengine import sympify, Eq, Symbol
 
 from calc.graphing import Graph
 from calc.relations import Relation
 
 
 # Versioning
-version = "alpha-0.1"
-# github_url = "https://api.github.com/repos/devkapa/InsidiaDiff/releases/latest"
+version = "alpha-0.4"
+# github_url = "https://api.github.com/repos/devkapa/Insidia/releases/latest"
 
 # Enable double buffer
 flags = DOUBLEBUF
@@ -62,8 +59,10 @@ HOME, SCIENTIFIC, GRAPHING, SETTINGS = 0, 1, 2, 3
 RETRACTED, EXTENDED = 0, 1
 SIDEBAR_SURFACE, SIDEBAR_BUTTON, SIDEBAR_PAGES = 0, 1, 2
 
-Rel = Relation(
-    Eq(sympify("y"), sympify("sin(x)")), (26, 87, 176))
+SQUARE_WAVE = "y = (4/pi)*sin(pi*x)+(4/pi)*(1/3)*sin(3*pi*x)+(4/pi)*(1/5)*sin(5*pi*x)+(4/pi)*(1/7)*sin(7*pi*x)+(4/pi)*(1/9)*sin(9*pi*x)"
+UGLY_CHAOS = "sin(cos(tan(x*y))) = sin(cos(tan(x)))"
+
+home_rels = [Relation(SQUARE_WAVE, (168, 113, 255))]
 
 
 # Returns a surface with text in the game font
@@ -122,15 +121,23 @@ def draw_home(sidebar_offset, graph):
     WIN.fill(BACKGROUND_COLOUR)
     title = render_text("Insidia: Your partner in math", 40, font=TITLE)
     WIN.blit(title, (sidebar_offset + 80, 80))
-    WIN.blit(graph.create((-30, 30), (-30, 30), [Rel], scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
+    WIN.blit(graph.create((-10, 10), (-2, 2), home_rels, (sidebar_offset + 80, 190), scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
              (sidebar_offset + 80, 190))
     graph.set_pos((sidebar_offset + 80, 190))
-    accumulated = 0
+    y_accumulated = 0
     for slider in graph.get_sliders():
         surface = slider.create()
-        WIN.blit(surface, (sidebar_offset + 700, 190 + (accumulated)))
-        slider.set_pos((sidebar_offset + 700, 190 + (accumulated)))
-        accumulated += surface.get_height() + 20
+        WIN.blit(surface, (sidebar_offset + 700, 190 + y_accumulated))
+        slider.set_pos((sidebar_offset + 700, 190 + y_accumulated))
+        y_accumulated += surface.get_height() + 20
+    x_accumulated = 0
+    for button in graph.get_buttons():
+        button.create(WIN, graph.get_mode(), sidebar_offset + 710 +
+                      x_accumulated, 190 + y_accumulated)
+        x_accumulated += button.size[0] + 15
+    subtitle = render_text(
+        "Math no longer has to be criminal. Visualise stunning, interactive graphs. Get started by exploring the sidebar.", 15)
+    WIN.blit(subtitle, (sidebar_offset + 80, 530))
 
 
 def draw_scientific():
@@ -171,7 +178,7 @@ def main():
 
     clicked = None
 
-    graph = Graph("", (600, 300))
+    graph = Graph((600, 300))
 
     while running:
 
@@ -188,6 +195,18 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+
+            if event.type == pygame.USEREVENT + 1:
+                graph.set_mode(0)
+
+            if event.type == pygame.USEREVENT + 2:
+                graph.set_mode(1)
+
+            if event.type == pygame.USEREVENT + 3:
+                graph.offset_x = 0
+                graph.offset_y = 0
+                for slider in graph.sliders:
+                    slider.reset()
 
             # Check if the user clicked the mouse
             if event.type == pygame.MOUSEBUTTONDOWN:
