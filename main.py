@@ -3,6 +3,7 @@ import sys
 import requests
 
 import pygame
+from random import choice
 from pygame.locals import *
 
 from calc.graphing import Graph
@@ -46,23 +47,12 @@ pygame.display.set_caption("Insidia")
 # Set the icon of the window
 ICON = pygame.image.load(os.path.join('assets', 'textures', 'logo.png'))
 pygame.display.set_icon(ICON)
+ICON_SPLASH = pygame.transform.scale(ICON, (400, 400))
 
-# Frames per second constant
-FPS = 120
 
 # Fonts
 TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
     'Oxanium-Regular.ttf', 'press-start.ttf'
-
-# Enum values for code readability
-HOME, SCIENTIFIC, GRAPHING, SETTINGS = 0, 1, 2, 3
-RETRACTED, EXTENDED = 0, 1
-SIDEBAR_SURFACE, SIDEBAR_BUTTON, SIDEBAR_PAGES = 0, 1, 2
-
-SQUARE_WAVE = "y = (4/pi)*sin(pi*x)+(4/pi)*(1/3)*sin(3*pi*x)+(4/pi)*(1/5)*sin(5*pi*x)+(4/pi)*(1/7)*sin(7*pi*x)+(4/pi)*(1/9)*sin(9*pi*x)"
-UGLY_CHAOS = "sin(cos(tan(x*y))) = sin(cos(tan(x)))"
-
-home_rels = [Relation(SQUARE_WAVE, (168, 113, 255))]
 
 
 # Returns a surface with text in the game font
@@ -71,6 +61,37 @@ def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
     text = font.render(text, True, color)
     text.set_alpha(alpha) if alpha is not None else None
     return text
+
+
+# Loading screen
+LOAD_MESSAGES = ["Compiling infinite digits of pi... this could take a while.",
+                 "Conjuring up a mathematical genie to do the calculations for us... Sit tight!",
+                 "Summoning the spirits of ancient mathematicians... hope they're in a good mood.",
+                 "Preparing to launch the world's largest abacus... hold on tight!",
+                 "Setting up a team of calculator-toting chimpanzees... standby for results.",
+                 "Spinning up the quantum calculator... it may take some time to stabilize.",
+                 "Assembling a team of mathemagicians to tackle your calculations... Abracadabra!",
+                 "Initiating the mathematical singularity... brace for impact!"]
+
+init_text = render_text(choice(LOAD_MESSAGES), 30, font=TITLE)
+WIN.blit(ICON_SPLASH, (WIDTH/2 - ICON_SPLASH.get_width() /
+                       2, HEIGHT/2 - ICON_SPLASH.get_height()/2 - init_text.get_height()))
+WIN.blit(init_text, (WIDTH/2 - init_text.get_width() /
+                     2, HEIGHT/2 + ICON_SPLASH.get_height()/2 + 10))
+pygame.display.update()
+
+# Frames per second constant
+FPS = 120
+
+# Enum values for code readability
+HOME, GRAPHING, SETTINGS = 0, 1, 2
+RETRACTED, EXTENDED = 0, 1
+SIDEBAR_SURFACE, SIDEBAR_BUTTON, SIDEBAR_PAGES = 0, 1, 2
+
+SQUARE_WAVE = "y = (4/pi)*sin(pi*x)+(4/pi)*(1/3)*sin(3*pi*x)+(4/pi)*(1/5)*sin(5*pi*x)+(4/pi)*(1/7)*sin(7*pi*x)+(4/pi)*(1/9)*sin(9*pi*x)"
+UGLY_CHAOS = "sin(cos(tan(x*y))) = sin(cos(tan(x)))"
+
+home_rels = [Relation(SQUARE_WAVE, (168, 113, 255))]
 
 
 # Create a sidebar depending on whether it is extended or not
@@ -90,8 +111,7 @@ def get_sidebar(sidebar, status):
                              close_text.get_width() - SIDEBAR_PADDING, SIDEBAR_PADDING))
 
         # Pages
-        pages = ["Home", "Scientific Calculator",
-                 "Graphing Calculator", "Settings"]
+        pages = ["Home", "Graphing Calculator", "Settings"]
         pygame.display.set_caption(f"{pages[status]} • Insidia")
         for index, page in enumerate(pages):
             page_button = pygame.Surface(
@@ -140,12 +160,24 @@ def draw_home(sidebar_offset, graph):
     WIN.blit(subtitle, (sidebar_offset + 80, 530))
 
 
-def draw_scientific():
+def draw_graphing(sidebar_offset, graph):
     WIN.fill(BACKGROUND_COLOUR)
-
-
-def draw_graphing():
-    WIN.fill(BACKGROUND_COLOUR)
+    WIN.blit(graph.create((-10, 10), (-2, 2), home_rels, (sidebar_offset + 70, 50), scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
+             (sidebar_offset + 70, 50))
+    graph.set_pos((sidebar_offset + 70, 50))
+    y_accumulated = 0
+    for slider in graph.get_sliders():
+        surface = slider.create()
+        WIN.blit(surface, (sidebar_offset +
+                 graph.size[0] + 90, 50 + y_accumulated))
+        slider.set_pos(
+            (sidebar_offset + graph.size[0] + 90, 50 + y_accumulated))
+        y_accumulated += surface.get_height() + 20
+    x_accumulated = 0
+    for button in graph.get_buttons():
+        button.create(WIN, graph.get_mode(), sidebar_offset + graph.size[0] + 100 +
+                      x_accumulated, 50 + y_accumulated)
+        x_accumulated += button.size[0] + 15
 
 
 def draw_settings():
@@ -153,6 +185,7 @@ def draw_settings():
 
 
 def main():
+
     # Initialise pygame's clock and start the game loop
     clock = pygame.time.Clock()
     running = True
@@ -178,7 +211,8 @@ def main():
 
     clicked = None
 
-    graph = Graph((600, 300))
+    demo_graph = Graph((600, 300))
+    calc_graph = Graph((650, 700))
 
     while running:
 
@@ -196,17 +230,17 @@ def main():
                 pygame.quit()
                 sys.exit()
 
-            if event.type == pygame.USEREVENT + 1:
-                graph.set_mode(0)
+            if event.type == Graph.PAN_EVENT:
+                demo_graph.set_mode(Graph.PAN)
+                calc_graph.set_mode(Graph.PAN)
 
-            if event.type == pygame.USEREVENT + 2:
-                graph.set_mode(1)
+            if event.type == Graph.TOOLTIP_EVENT:
+                demo_graph.set_mode(Graph.TOOLTIP)
+                calc_graph.set_mode(Graph.TOOLTIP)
 
-            if event.type == pygame.USEREVENT + 3:
-                graph.offset_x = 0
-                graph.offset_y = 0
-                for slider in graph.sliders:
-                    slider.reset()
+            if event.type == Graph.RESET_EVENT:
+                demo_graph.reset()
+                calc_graph.reset()
 
             # Check if the user clicked the mouse
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -215,8 +249,10 @@ def main():
                 if sidebar[SIDEBAR_BUTTON].collidepoint(event.pos):
                     if sidebar_state == EXTENDED:
                         sidebar_state = RETRACTED
+                        calc_graph.extend(850)
                     else:
                         sidebar_state = EXTENDED
+                        calc_graph.extend(650)
                         sidebar_anim_frames = SIDEBAR_WIDTH
 
                 # Reload sidebar after state change
@@ -224,22 +260,19 @@ def main():
 
                 # Change program state if sidebar page button is pressed
                 if len(sidebar) > SIDEBAR_PAGES:
-                    for state in [HOME, SCIENTIFIC, GRAPHING, SETTINGS]:
+                    for state in [HOME, GRAPHING, SETTINGS]:
                         if sidebar[SIDEBAR_PAGES][state].collidepoint(event.pos):
                             current_state = state
 
         if current_state == HOME:
-            draw_home(230 if sidebar_state == EXTENDED else 0, graph)
-
+            draw_home(230 if sidebar_state == EXTENDED else 0, demo_graph)
             buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
-
-            clicked = graph.handle_changes(buttons_pressed, clicked)
-
-        if current_state == SCIENTIFIC:
-            draw_scientific()
+            clicked = demo_graph.handle_changes(buttons_pressed, clicked)
 
         if current_state == GRAPHING:
-            draw_graphing()
+            draw_graphing(230 if sidebar_state == EXTENDED else 0, calc_graph)
+            buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
+            clicked = calc_graph.handle_changes(buttons_pressed, clicked)
 
         if current_state == SETTINGS:
             draw_settings()

@@ -46,6 +46,8 @@ def low_res_warning(x):
 class Graph:
 
     PAN, TOOLTIP = 0, 1
+    PAN_EVENT, TOOLTIP_EVENT, RESET_EVENT = pygame.USEREVENT + \
+        1, pygame.USEREVENT + 2, pygame.USEREVENT + 3
 
     mode: int
     size: tuple
@@ -83,6 +85,9 @@ class Graph:
                         Button(os.path.join('assets', 'textures', 'reset.png'), (50, 50), pygame.USEREVENT + 3, -1, "Reset")]
         self.lines = {}
         self.alternate = {}
+
+    def extend(self, size_x) -> None:
+        self.size = (size_x, self.size[1])
 
     def get_clicked(self) -> bool:
         return self.clicked
@@ -130,8 +135,10 @@ class Graph:
             return
         self.offset_y += val
 
-    def reset_offset(self) -> None:
+    def reset(self) -> None:
         self.offset_x, self.offset_y = 0, 0
+        for slider in self.sliders:
+            slider.reset()
 
     def sketch(self, all_x, all_y, relation, scale_x, scale_y, graph_surface) -> tuple:
         origin = (self.plotting_size_x/2, self.plotting_size_y/2)
