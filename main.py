@@ -13,7 +13,7 @@ from tkinter import messagebox
 
 
 # Versioning
-version = "alpha-0.4"
+version = "alpha-1.0"
 
 # Enable double buffer
 flags = DOUBLEBUF
