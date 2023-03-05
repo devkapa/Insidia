@@ -272,17 +272,21 @@ def main():
                                         if rels[textbox].get_original() != textbox.get_text():
                                             rels[textbox] = Relation(
                                                 textbox.get_text(), textbox.get_colour())
+                                    textbox.set_validity(True)
                                 else:
                                     if textbox in rels:
                                         rels.pop(textbox)
+                                    textbox.set_validity(True)
                             except:
                                 messagebox.showerror(
                                     "Error", f"Thats an invalid expression.\n\"{textbox.get_text()}\"\nIf you are multiplying two terms (e.g. 2sin(x)), try adding a * between them. (2*sin(x))")
-                                textbox.set_active(True)
+                                textbox.set_validity(False)
                                 if textbox in rels:
                                     rels.pop(textbox)
                         elif event.key == pygame.K_BACKSPACE:
                             textbox.backspace()
+                        elif event.key in Textbox.ARROWS:
+                            textbox.move_cursor(event.key)
                         elif event.key in Textbox.WHITELIST:
                             textbox.add_text(event.unicode)
                 for textbox in calc_graph.get_d_r_boxes():
@@ -291,6 +295,8 @@ def main():
                             textbox.set_active(False)
                         elif event.key == pygame.K_BACKSPACE:
                             textbox.backspace()
+                        elif event.key in Textbox.ARROWS:
+                            textbox.move_cursor(event.key)
                         elif event.key in Textbox.NUMBERS_ONLY:
                             textbox.add_text(event.unicode)
 
@@ -333,13 +339,13 @@ def main():
                                 if rels[textbox].get_original() != textbox.get_text():
                                     rels[textbox] = Relation(
                                         textbox.get_text(), textbox.get_colour())
+                            textbox.set_validity(True)
                         else:
                             if textbox in rels:
                                 rels.pop(textbox)
+                            textbox.set_validity(True)
                     except:
-                        messagebox.showerror(
-                            "Error", f"Thats an invalid expression.\n\"{textbox.get_text()}\"\nIf you are multiplying two terms (e.g. 2sin(x)), try adding a * between them. (2*sin(x))")
-                        textbox.set_active(True)
+                        textbox.set_validity(False)
                         if textbox in rels:
                             rels.pop(textbox)
             active = False

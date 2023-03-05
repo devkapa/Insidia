@@ -1,5 +1,6 @@
 from symengine import Symbol, sympify, Eq
-from sympy import solveset, EmptySet, ConditionSet
+from sympy import solveset, EmptySet
+from sympy import sympify as sympyify
 
 
 class Relation:
@@ -32,11 +33,13 @@ class Relation:
     def get_original(self) -> str:
         return self.original_str
 
-    def equality(self, expression: str) -> object:
+    def equality(self, expression: str):
         expression = expression.split("=")
+        if len(expression) != 2:
+            raise Exception
         self.lhs = expression[0]
         self.rhs = expression[1]
-        self.equation = Eq(sympify(self.lhs), sympify(self.rhs))
+        self.equation = Eq(sympyify(self.lhs), sympyify(self.rhs))
 
     def get_expression(self) -> object:
         return self.equation

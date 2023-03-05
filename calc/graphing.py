@@ -1,5 +1,7 @@
 import os
 import pygame
+import symengine
+import sympy
 from symengine import Symbol, sympify
 from widgets.slider import Slider
 from widgets.button import Button
@@ -49,6 +51,9 @@ TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.tt
     'Oxanium-Regular.ttf', 'press-start.ttf'
 
 
+FACTORIAL = symengine.sympify(sympy.sympify("factorial(x)"))
+
+
 # Returns a surface with text in the game font
 def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
     font = pygame.font.Font(os.path.join('assets', 'fonts', font), px)
@@ -69,6 +74,35 @@ def low_res_warning(x):
     all_graphs = "\n   • ".join(x)
     warning = f"""The following graph(s) cannot be fully evaluated:\n   • {all_graphs}\nEvaluating at low resolution"""
     messagebox.showwarning("Warning", warning)
+
+
+def multisolver(expression):
+    for index, sub_expr in enumerate(expression.args):
+        if type(sub_expr) == symengine.Pow:
+            if type(sub_expr.args[1]) == symengine.Rational:
+                num, den = sub_expr.args[1].get_num_den()
+                real_root = symengine.sympify(sympy.real_root(sympy.Pow(sub_expr.args[0], num), den))
+                expression = expression.replace(expression.args[index], real_root)
+        else:
+            expression = expression.replace(expression.args[index], multisolver(sub_expr))
+    return expression
+
+
+def factorial_checker(expression):
+    if expression == FACTORIAL:
+        return True
+    elif type(expression) != tuple:
+        found = False
+        for i in expression.args:
+            found = factorial_checker(i) if not found else True
+        return found
+    elif FACTORIAL in expression.args:
+        return True
+    else:
+        try:
+            return factorial_checker(expression.args)
+        except AttributeError:
+            return False
 
 
 class Graph:
@@ -171,7 +205,7 @@ class Graph:
     def get_buttons(self) -> list:
         return self.buttons
 
-    def add_clear_button(self) -> list:
+    def add_clear_button(self) -> None:
         clear_btn = Button(os.path.join(
             'assets', 'textures', 'broom.png'), (50, 110), self.CLEAR_EVENT, -1, "Clear")
         self.buttons.append(clear_btn)
@@ -199,23 +233,40 @@ class Graph:
         for slider in self.sliders:
             slider.reset()
 
-    def sketch(self, all_x, all_y, relation, scale_x, scale_y, graph_surface, change) -> tuple:
+    def sketch(self, all_x, all_y, relation, scale_x, scale_y, graph_surface, change) -> str | None:
         origin = (self.plotting_size_x/2, self.plotting_size_y/2)
         x_exprs, y_exprs = relation.f()
 
         symbol_x = Symbol('x')
         symbol_y = Symbol('y')
 
-        self.all_value_cache = []
-
         if (relation not in self.lines and relation not in self.alternate) or change:
 
             lines_to_draw = []
 
             for expr in y_exprs.args:
+
+                if type(expr) == symengine.Pow:
+                    if type(expr.args[1]) == symengine.Rational:
+                        num, den = expr.args[1].get_num_den()
+                        real_root = symengine.sympify(sympy.real_root(sympy.Pow(expr.args[0], num), den))
+                        expr = real_root
+                else:
+                    expr = multisolver(expr)
+
                 points = []
                 for x_val in all_x:
-                    y_val = expr.xreplace({symbol_x: x_val}).n()
+                    if factorial_checker(expr):
+                        if x_val < 0 and x_val % 1 == 0:
+                            if len(points) > 1:
+                                lines_to_draw.append(points)
+                            points = []
+                            continue
+                    y_val = expr.xreplace({symbol_x: x_val})
+                    try:
+                        y_val = symengine.Float(y_val)
+                    except RuntimeError:
+                        pass
                     if not y_val.is_real:
                         if len(points) > 1:
                             lines_to_draw.append(points)
@@ -487,7 +538,7 @@ class Graph:
 
     def handle_changes(self, buttons_pressed, clicked) -> object:
 
-        if clicked == None:
+        if clicked is None:
             hovered = False
             for button in self.buttons:
                 hovered = button.on_hover() if not hovered else True
@@ -529,27 +580,27 @@ class Graph:
             for textbox in self.textboxes:
                 if textbox.last_surface is not None:
                     if textbox.last_surface.get_rect(topleft=textbox.get_pos()).collidepoint(pygame.mouse.get_pos()):
-                        if clicked == None:
+                        if clicked is None:
                             textbox.set_active(True)
                     else:
                         textbox.set_active(False)
             for textbox in self.d_r_boxes:
                 if textbox.last_surface is not None:
                     if textbox.last_surface.get_rect(topleft=textbox.get_pos()).collidepoint(pygame.mouse.get_pos()):
-                        if clicked == None:
+                        if clicked is None:
                             textbox.set_active(True)
                     else:
                         textbox.set_active(False)
             for slider in self.sliders:
-                if slider == clicked or clicked == None:
+                if slider == clicked or clicked is None:
                     if slider.current_surface.get_rect(topleft=slider.get_pos()).collidepoint(pygame.mouse.get_pos()):
                         slider.set_clicked(True)
                         clicked = slider
-            if self == clicked or clicked == None:
+            if self == clicked or clicked is None:
                 if self.viewing_surface.get_rect(topleft=self.get_pos()).collidepoint(pygame.mouse.get_pos()):
                     self.set_clicked(True, pygame.mouse.get_pos())
                     clicked = self
-            if clicked == None:
+            if clicked is None:
                 for button in self.buttons:
                     button.on_click()
         else:
