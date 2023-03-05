@@ -138,6 +138,7 @@ class Graph:
     d_r_boxes: list
     lines: dict
     alternate: dict
+    used_colours: list
 
     def __init__(self, size, textboxes=0, clear=False) -> None:
         self.mode = self.PAN
@@ -166,6 +167,7 @@ class Graph:
                           Textbox((60, 30), 18, "Y-Max", WHITE, default="5")]
         self.lines = {}
         self.alternate = {}
+        self.used_colours = []
         if textboxes != 0:
             for i in range(textboxes):
                 self.add_textbox()
@@ -179,8 +181,11 @@ class Graph:
         return self.d_r_boxes
 
     def add_textbox(self) -> None:
+        random_colour = choice(
+            [i for i in COLOURS if i not in self.used_colours])
+        self.used_colours.append(random_colour)
         self.textboxes.append(
-            Textbox((200, 30), 18, "Equation " + str(len(self.textboxes) + 1), choice(COLOURS)))
+            Textbox((200, 30), 18, "Equation " + str(len(self.textboxes) + 1), random_colour))
 
     def remove_textbox(self, textbox) -> None:
         self.textboxes.remove(textbox)
