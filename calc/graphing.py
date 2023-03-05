@@ -1,4 +1,5 @@
 import os
+import sys
 import pygame
 import symengine
 import sympy
@@ -54,9 +55,16 @@ TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.tt
 FACTORIAL = symengine.sympify(sympy.sympify("factorial(x)"))
 
 
+if getattr(sys, 'frozen', False):
+    CurrentPath = sys._MEIPASS
+else:
+    CurrentPath = os.path.dirname(__file__)
+
+
 # Returns a surface with text in the game font
 def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
-    font = pygame.font.Font(os.path.join('assets', 'fonts', font), px)
+    font = pygame.font.Font(os.path.join(
+        CurrentPath, 'assets', 'fonts', font), px)
     text = font.render(text, False, color)
     text.set_alpha(alpha) if alpha is not None else None
     return text
@@ -81,10 +89,13 @@ def multisolver(expression):
         if type(sub_expr) == symengine.Pow:
             if type(sub_expr.args[1]) == symengine.Rational:
                 num, den = sub_expr.args[1].get_num_den()
-                real_root = symengine.sympify(sympy.real_root(sympy.Pow(sub_expr.args[0], num), den))
-                expression = expression.replace(expression.args[index], real_root)
+                real_root = symengine.sympify(sympy.real_root(
+                    sympy.Pow(sub_expr.args[0], num), den))
+                expression = expression.replace(
+                    expression.args[index], real_root)
         else:
-            expression = expression.replace(expression.args[index], multisolver(sub_expr))
+            expression = expression.replace(
+                expression.args[index], multisolver(sub_expr))
     return expression
 
 
@@ -143,10 +154,10 @@ class Graph:
         self.clicked = False
         self.sliders = [Slider(1, 200, 200, 10, 10, default=40, name="X Axis Scale"),
                         Slider(1, 200, 200, 10, 10, default=40, name="Y Axis Scale")]
-        self.buttons = [Button(os.path.join('assets', 'textures', 'pan_cursor.png'), (55, 50), self.PAN_EVENT, 0, "Pan"),
+        self.buttons = [Button(os.path.join(CurrentPath, 'assets', 'textures', 'pan_cursor.png'), (55, 50), self.PAN_EVENT, 0, "Pan"),
                         Button(os.path.join(
-                            'assets', 'textures', 'tooltip_cursor.png'), (55, 50), self.TOOLTIP_EVENT, 1, "Point"),
-                        Button(os.path.join('assets', 'textures', 'reset.png'),
+                            CurrentPath, 'assets', 'textures', 'tooltip_cursor.png'), (55, 50), self.TOOLTIP_EVENT, 1, "Point"),
+                        Button(os.path.join(CurrentPath, 'assets', 'textures', 'reset.png'),
                                (55, 50), self.RESET_EVENT, -1, "Origin")]
         self.textboxes = []
         self.d_r_boxes = [Textbox((60, 30), 18, "X-Min", WHITE, default="-10"),
@@ -207,7 +218,7 @@ class Graph:
 
     def add_clear_button(self) -> None:
         clear_btn = Button(os.path.join(
-            'assets', 'textures', 'broom.png'), (50, 110), self.CLEAR_EVENT, -1, "Clear")
+            CurrentPath, 'assets', 'textures', 'broom.png'), (50, 110), self.CLEAR_EVENT, -1, "Clear")
         self.buttons.append(clear_btn)
 
     def shift_x(self, val) -> None:
@@ -249,7 +260,8 @@ class Graph:
                 if type(expr) == symengine.Pow:
                     if type(expr.args[1]) == symengine.Rational:
                         num, den = expr.args[1].get_num_den()
-                        real_root = symengine.sympify(sympy.real_root(sympy.Pow(expr.args[0], num), den))
+                        real_root = symengine.sympify(
+                            sympy.real_root(sympy.Pow(expr.args[0], num), den))
                         expr = real_root
                 else:
                     expr = multisolver(expr)

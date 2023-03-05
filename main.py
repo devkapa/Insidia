@@ -45,8 +45,14 @@ WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags, 8)
 WIN.set_alpha(None)
 pygame.display.set_caption("Insidia")
 
+if getattr(sys, 'frozen', False):
+    CurrentPath = sys._MEIPASS
+else:
+    CurrentPath = os.path.dirname(__file__)
+
 # Set the icon of the window
-ICON = pygame.image.load(os.path.join('assets', 'textures', 'logo.png'))
+ICON = pygame.image.load(os.path.join(
+    CurrentPath, 'assets', 'textures', 'logo.png'))
 pygame.display.set_icon(ICON)
 ICON_SPLASH = pygame.transform.scale(ICON, (400, 400))
 
@@ -58,7 +64,8 @@ TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.tt
 
 # Returns a surface with text in the game font
 def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
-    font = pygame.font.Font(os.path.join('assets', 'fonts', font), px)
+    font = pygame.font.Font(os.path.join(
+        CurrentPath, 'assets', 'fonts', font), px)
     text = font.render(text, True, color)
     text.set_alpha(alpha) if alpha is not None else None
     return text

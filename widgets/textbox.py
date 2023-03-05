@@ -1,5 +1,6 @@
 import pygame
 import os
+import sys
 
 
 # RGB colour constants
@@ -14,9 +15,16 @@ TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.tt
     'Oxanium-Regular.ttf', 'press-start.ttf'
 
 
+if getattr(sys, 'frozen', False):
+    CurrentPath = sys._MEIPASS
+else:
+    CurrentPath = os.path.dirname(__file__)
+
+
 # Returns a surface with text in the game font
 def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
-    font = pygame.font.Font(os.path.join('assets', 'fonts', font), px)
+    font = pygame.font.Font(os.path.join(
+        CurrentPath, 'assets', 'fonts', font), px)
     text = font.render(text, False, color)
     text.set_alpha(alpha) if alpha is not None else None
     return text
@@ -66,7 +74,8 @@ class Textbox:
     def create(self, surface, left, top) -> None:
         self.pos = (left, top)
         title_text = self.title if self.valid else self.title + " - INVALID"
-        title = render_text(title_text, self.px, color=RED if not self.valid else self.colour)
+        title = render_text(title_text, self.px,
+                            color=RED if not self.valid else self.colour)
         textbox_surface = pygame.Surface((
             self.size[0], self.size[1] + title.get_height() + 5))
         textbox_surface.fill(BACKGROUND_COLOUR)
@@ -79,9 +88,11 @@ class Textbox:
         text = render_text(
             "".join(text_with_cursor), self.px, color=BLACK)
         if self.active and text.get_width() > self.size[0] and len(text_with_cursor[0]) > 0:
-            cursor_and_following = render_text("".join([text_with_cursor[1], text_with_cursor[2]]), self.px, color=BLACK)
+            cursor_and_following = render_text(
+                "".join([text_with_cursor[1], text_with_cursor[2]]), self.px, color=BLACK)
             if cursor_and_following.get_width() > self.size[0]/2:
-                new_text = "".join([text_with_cursor[0][-10:], text_with_cursor[1], text_with_cursor[2]])
+                new_text = "".join(
+                    [text_with_cursor[0][-10:], text_with_cursor[1], text_with_cursor[2]])
                 new_text = render_text(new_text, self.px, color=BLACK)
                 textbox_surface.blit(
                     new_text, (5, title.get_height() + self.size[1] / 2))
@@ -95,12 +106,14 @@ class Textbox:
         surface.blit(textbox_surface, (left, top))
 
     def add_text(self, key) -> None:
-        self.value = self.value[:self.cursor_pos] + key + self.value[self.cursor_pos:]
+        self.value = self.value[:self.cursor_pos] + \
+            key + self.value[self.cursor_pos:]
         self.cursor_pos += 1
 
     def backspace(self) -> None:
         if len(self.value[:self.cursor_pos]) > 0:
-            self.value = self.value[:self.cursor_pos][:-1] + self.value[self.cursor_pos:]
+            self.value = self.value[:self.cursor_pos][:-
+                                                      1] + self.value[self.cursor_pos:]
             self.cursor_pos -= 1
 
     def text_with_cursor(self):

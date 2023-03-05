@@ -1,6 +1,7 @@
 import pygame
 import os
 import math
+import sys
 
 
 # RGB colour constants
@@ -14,9 +15,16 @@ TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.tt
     'Oxanium-Regular.ttf', 'press-start.ttf'
 
 
+if getattr(sys, 'frozen', False):
+    CurrentPath = sys._MEIPASS
+else:
+    CurrentPath = os.path.dirname(__file__)
+
+
 # Returns a surface with text in the game font
 def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
-    font = pygame.font.Font(os.path.join('assets', 'fonts', font), px)
+    font = pygame.font.Font(os.path.join(
+        CurrentPath, 'assets', 'fonts', font), px)
     text = font.render(text, False, color)
     text.set_alpha(alpha) if alpha is not None else None
     return text
