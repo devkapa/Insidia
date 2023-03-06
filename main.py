@@ -264,6 +264,7 @@ def main():
                     textbox.reset()
                 for textbox in calc_graph.get_d_r_boxes():
                     textbox.value = textbox.default
+                calc_graph.reset()
 
             if event.type == pygame.KEYDOWN:
                 for textbox in calc_graph.get_textboxes():

@@ -76,9 +76,11 @@ class Textbox:
         title_text = self.title if self.valid else self.title + " - INVALID"
         title = render_text(title_text, self.px,
                             color=RED if not self.valid else self.colour)
+        title_shadow = render_text(title_text, self.px)
         textbox_surface = pygame.Surface((
             self.size[0], self.size[1] + title.get_height() + 5))
         textbox_surface.fill(BACKGROUND_COLOUR)
+        textbox_surface.blit(title_shadow, (1, 1))
         textbox_surface.blit(title, (0, 0))
         self.rect = pygame.Rect(0, title.get_height() + 5,
                                 self.size[0], self.size[1])

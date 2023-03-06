@@ -47,7 +47,7 @@ class Button:
 
     def __init__(self, icon, size, event, mode, label) -> None:
         self.icon = pygame.transform.scale(pygame.image.load(
-            icon).convert_alpha(), (size[0], size[1]))
+            icon).convert_alpha(), (size[0]-10, size[1]-10))
         fill(self.icon, WHITE)
         self.size = size
         self.event = pygame.event.Event(event)
@@ -79,6 +79,7 @@ class Button:
             button_surface.blit(
                 label, (self.size[0]/2 - label.get_width()/2, self.size[1]/2 - label.get_height()/2))
         else:
-            button_surface.blit(self.icon, (0, 0))
+            button_surface.blit(self.icon, ((
+                self.size[0]/2)-(self.icon.get_width()/2), (self.size[1]/2)-(self.icon.get_height()/2)))
         self.last_surface = button_surface
         surface.blit(button_surface, (left, top))
