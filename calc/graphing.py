@@ -58,7 +58,7 @@ FACTORIAL = symengine.sympify(sympy.sympify("factorial(x)"))
 if getattr(sys, 'frozen', False):
     CurrentPath = sys._MEIPASS
 else:
-    CurrentPath = os.path.dirname(__file__)
+    CurrentPath = ''
 
 
 # Returns a surface with text in the game font
@@ -95,7 +95,7 @@ def multisolver(expression):
                     expression.args[index], real_root)
         else:
             expression = expression.replace(
-                expression.args[index], multisolver(sub_expr))
+                sub_expr, multisolver(sub_expr))
     return expression
 
 

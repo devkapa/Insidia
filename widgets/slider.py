@@ -18,7 +18,7 @@ TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.tt
 if getattr(sys, 'frozen', False):
     CurrentPath = sys._MEIPASS
 else:
-    CurrentPath = os.path.dirname(__file__)
+    CurrentPath = ''
 
 
 # Returns a surface with text in the game font

@@ -18,7 +18,7 @@ TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.tt
 if getattr(sys, 'frozen', False):
     CurrentPath = sys._MEIPASS
 else:
-    CurrentPath = os.path.dirname(__file__)
+    CurrentPath = ''
 
 
 # Returns a surface with text in the game font
@@ -97,13 +97,13 @@ class Textbox:
                     [text_with_cursor[0][-10:], text_with_cursor[1], text_with_cursor[2]])
                 new_text = render_text(new_text, self.px, color=BLACK)
                 textbox_surface.blit(
-                    new_text, (5, title.get_height() + self.size[1] / 2))
+                    new_text, (5, new_text.get_height() + self.size[1] / 2))
             else:
                 textbox_surface.blit(
-                    text, (-(text.get_width() - self.size[0]), title.get_height() + self.size[1]/2))
+                    text, (-(text.get_width() - self.size[0]), text.get_height() + self.size[1]/2))
         else:
             textbox_surface.blit(
-                text, (5, title.get_height() + self.size[1]/2))
+                text, (5, text.get_height() + self.size[1]/2))
         self.last_surface = textbox_surface
         surface.blit(textbox_surface, (left, top))
 

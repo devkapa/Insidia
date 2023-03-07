@@ -36,7 +36,7 @@ SIDEBAR_COLOUR = (38, 39, 48)
 SIDEBAR_HIGHLIGHT = (58, 59, 70)
 
 # Size constants
-WIDTH, HEIGHT = 1200, 800
+WIDTH, HEIGHT = 1200, 900
 SIDEBAR_WIDTH, SIDEBAR_HEIGHT = 250, HEIGHT
 SIDEBAR_PADDING = 10
 
@@ -225,7 +225,7 @@ def main():
     clicked = None
 
     demo_graph = Graph((600, 300))
-    calc_graph = Graph((650, 700), textboxes=5, clear=True)
+    calc_graph = Graph((650, 700), textboxes=6, clear=True)
 
     rels = {}
     last_domain = (-10, 10)
@@ -305,7 +305,7 @@ def main():
                             textbox.backspace()
                         elif event.key in Textbox.ARROWS:
                             textbox.move_cursor(event.key)
-                        elif event.key in Textbox.NUMBERS_ONLY:
+                        elif event.key in Textbox.WHITELIST:
                             textbox.add_text(event.unicode)
 
             # Check if the user clicked the mouse
