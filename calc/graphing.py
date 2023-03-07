@@ -140,7 +140,7 @@ class Graph:
     alternate: dict
     used_colours: list
 
-    def __init__(self, size, textboxes=0, clear=False) -> None:
+    def __init__(self, size, equations=0, clear=False) -> None:
         self.mode = self.PAN
         self.size = size
         self.offset_x, self.offset_y = 0, 0
@@ -168,9 +168,11 @@ class Graph:
         self.lines = {}
         self.alternate = {}
         self.used_colours = []
-        if textboxes != 0:
-            for i in range(textboxes):
+        if equations != 0:
+            i = 0
+            while i < equations:
                 self.add_textbox()
+                i += 1
         if clear:
             self.add_clear_button()
 

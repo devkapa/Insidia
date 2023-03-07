@@ -36,7 +36,7 @@ SIDEBAR_COLOUR = (38, 39, 48)
 SIDEBAR_HIGHLIGHT = (58, 59, 70)
 
 # Size constants
-WIDTH, HEIGHT = 1200, 900
+WIDTH, HEIGHT = 1200, 800
 SIDEBAR_WIDTH, SIDEBAR_HEIGHT = 250, HEIGHT
 SIDEBAR_PADDING = 10
 
@@ -225,7 +225,7 @@ def main():
     clicked = None
 
     demo_graph = Graph((600, 300))
-    calc_graph = Graph((650, 700), textboxes=6, clear=True)
+    calc_graph = Graph((650, 700), equations=5, clear=True)
 
     rels = {}
     last_domain = (-10, 10)
