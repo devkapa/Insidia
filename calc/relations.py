@@ -4,7 +4,6 @@ from sympy import sympify as sympyify
 
 
 class Relation:
-
     equation: str
     colour: tuple
     x_values: object

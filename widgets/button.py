@@ -2,7 +2,6 @@ import pygame
 import os
 import sys
 
-
 DARK_GREY = (100, 100, 100)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -11,7 +10,6 @@ BACKGROUND_COLOUR = (14, 17, 23)
 # Fonts
 TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
     'Oxanium-Regular.ttf', 'press-start.ttf'
-
 
 if getattr(sys, 'frozen', False):
     CurrentPath = sys._MEIPASS
@@ -38,7 +36,6 @@ def fill(surface, color):
 
 
 class Button:
-
     icon: pygame.Surface
     size: tuple
     mode: int
@@ -49,7 +46,7 @@ class Button:
         self.rect = None
         self.pos = None
         self.icon = pygame.transform.scale(pygame.image.load(
-            icon).convert_alpha(), (size[0]-10, size[1]-10))
+            icon).convert_alpha(), (size[0] - 10, size[1] - 10))
         fill(self.icon, WHITE)
         self.size = size
         self.event = pygame.event.Event(event)
@@ -79,9 +76,10 @@ class Button:
         pygame.draw.rect(button_surface, colour, self.rect, border_radius=10)
         if self.hovering:
             button_surface.blit(
-                label, (self.size[0]/2 - label.get_width()/2, self.size[1]/2 - label.get_height()/2))
+                label, (self.size[0] / 2 - label.get_width() / 2, self.size[1] / 2 - label.get_height() / 2))
         else:
             button_surface.blit(self.icon, ((
-                self.size[0]/2)-(self.icon.get_width()/2), (self.size[1]/2)-(self.icon.get_height()/2)))
+                                                self.size[0] / 2) - (self.icon.get_width() / 2),
+                                            (self.size[1] / 2) - (self.icon.get_height() / 2)))
         self.last_surface = button_surface
         surface.blit(button_surface, (left, top))

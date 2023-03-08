@@ -2,7 +2,6 @@ import pygame
 import os
 import sys
 
-
 # RGB colour constants
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -13,7 +12,6 @@ RED = (220, 0, 0)
 # Fonts
 TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
     'Oxanium-Regular.ttf', 'press-start.ttf'
-
 
 if getattr(sys, 'frozen', False):
     CurrentPath = sys._MEIPASS
@@ -31,7 +29,6 @@ def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
 
 
 class Textbox:
-
     value: str
     px: int
     active: bool
@@ -43,8 +40,14 @@ class Textbox:
     cursor_pos: int
     valid: bool
 
-    WHITELIST = [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_CARET, pygame.K_ASTERISK, pygame.K_LEFTPAREN, pygame.K_RIGHTPAREN, pygame.K_PLUS, pygame.K_MINUS, pygame.K_SLASH, pygame.K_EQUALS, pygame.K_PERIOD, pygame.K_SPACE, pygame.K_a,
-                 pygame.K_b, pygame.K_c, pygame.K_d, pygame.K_e, pygame.K_f, pygame.K_g, pygame.K_h, pygame.K_i, pygame.K_j, pygame.K_k, pygame.K_l, pygame.K_m, pygame.K_n, pygame.K_o, pygame.K_p, pygame.K_q, pygame.K_r, pygame.K_s, pygame.K_t, pygame.K_u, pygame.K_v, pygame.K_w, pygame.K_x, pygame.K_y, pygame.K_z]
+    WHITELIST = [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7,
+                 pygame.K_8, pygame.K_9, pygame.K_CARET, pygame.K_ASTERISK, pygame.K_LEFTPAREN, pygame.K_RIGHTPAREN,
+                 pygame.K_PLUS, pygame.K_MINUS, pygame.K_SLASH, pygame.K_EQUALS, pygame.K_PERIOD, pygame.K_SPACE,
+                 pygame.K_a,
+                 pygame.K_b, pygame.K_c, pygame.K_d, pygame.K_e, pygame.K_f, pygame.K_g, pygame.K_h, pygame.K_i,
+                 pygame.K_j, pygame.K_k, pygame.K_l, pygame.K_m, pygame.K_n, pygame.K_o, pygame.K_p, pygame.K_q,
+                 pygame.K_r, pygame.K_s, pygame.K_t, pygame.K_u, pygame.K_v, pygame.K_w, pygame.K_x, pygame.K_y,
+                 pygame.K_z]
 
     NUMBERS_ONLY = [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4,
                     pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_MINUS]
@@ -92,7 +95,7 @@ class Textbox:
         if self.active and text.get_width() > self.size[0] and len(text_with_cursor[0]) > 0:
             cursor_and_following = render_text(
                 "".join([text_with_cursor[1], text_with_cursor[2]]), self.px, color=BLACK)
-            if cursor_and_following.get_width() > self.size[0]/2:
+            if cursor_and_following.get_width() > self.size[0] / 2:
                 new_text = "".join(
                     [text_with_cursor[0][-10:], text_with_cursor[1], text_with_cursor[2]])
                 new_text = render_text(new_text, self.px, color=BLACK)
@@ -100,22 +103,22 @@ class Textbox:
                     new_text, (5, new_text.get_height() + self.size[1] / 2))
             else:
                 textbox_surface.blit(
-                    text, (-(text.get_width() - self.size[0]), text.get_height() + self.size[1]/2))
+                    text, (-(text.get_width() - self.size[0]), text.get_height() + self.size[1] / 2))
         else:
             textbox_surface.blit(
-                text, (5, text.get_height() + self.size[1]/2))
+                text, (5, text.get_height() + self.size[1] / 2))
         self.last_surface = textbox_surface
         surface.blit(textbox_surface, (left, top))
 
     def add_text(self, key) -> None:
         self.value = self.value[:self.cursor_pos] + \
-            key + self.value[self.cursor_pos:]
+                     key + self.value[self.cursor_pos:]
         self.cursor_pos += 1
 
     def backspace(self) -> None:
         if len(self.value[:self.cursor_pos]) > 0:
             self.value = self.value[:self.cursor_pos][:-
-                                                      1] + self.value[self.cursor_pos:]
+            1] + self.value[self.cursor_pos:]
             self.cursor_pos -= 1
 
     def text_with_cursor(self):

@@ -11,13 +11,11 @@ from widgets.textbox import Textbox
 from tkinter import messagebox
 from random import choice
 
-
 # RGB colour constants
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 DARK_GREY = (100, 100, 100)
 BACKGROUND_GREY = (239, 239, 239)
-
 
 # Graph curve colours
 RED = (139, 0, 0)
@@ -52,9 +50,7 @@ COLOURS = [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, CYAN, MAGENTA, GRAY, BROWN,
 TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
     'Oxanium-Regular.ttf', 'press-start.ttf'
 
-
 FACTORIAL = sympify(sympy.sympify("factorial(x)"))
-
 
 if getattr(sys, 'frozen', False):
     CurrentPath = sys._MEIPASS
@@ -72,7 +68,8 @@ def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
 
 
 def in_viewport(coordinate, viewport, viewport_max):
-    return True if viewport[0] <= coordinate[0] <= viewport_max[0] and viewport[1] <= coordinate[1] <= viewport_max[1] else False
+    return True if viewport[0] <= coordinate[0] <= viewport_max[0] and viewport[1] <= coordinate[1] <= viewport_max[
+        1] else False
 
 
 def low_res_warning(x):
@@ -144,7 +141,7 @@ def calculate_x_y(relation, all_x, all_y):
             try:
                 y_val = symengine.Float(y_val)
             except RuntimeError:
-                    pass
+                pass
             if not y_val.is_real:
                 if len(points) > 1:
                     lines_to_draw.append(points)
@@ -184,10 +181,10 @@ def calculate_x_y(relation, all_x, all_y):
         if relation.lhs != relation.rhs:
             alternate_renders = []
             for x_val in all_x:
-                if not (x_val*10).is_integer():
+                if not (x_val * 10).is_integer():
                     continue
                 for y_val in all_y:
-                    if not (y_val*10).is_integer():
+                    if not (y_val * 10).is_integer():
                         continue
                     ex = sympify(relation.lhs + " - " + relation.rhs)
                     ans = ex.xreplace(
@@ -199,10 +196,9 @@ def calculate_x_y(relation, all_x, all_y):
 
 
 class Graph:
-
     PAN, TOOLTIP = 0, 1
     PAN_EVENT, TOOLTIP_EVENT, RESET_EVENT, CLEAR_EVENT = pygame.USEREVENT + \
-        1, pygame.USEREVENT + 2, pygame.USEREVENT + 3, pygame.USEREVENT + 4
+                                                         1, pygame.USEREVENT + 2, pygame.USEREVENT + 3, pygame.USEREVENT + 4
 
     mode: int
     size: tuple
@@ -238,11 +234,13 @@ class Graph:
         self.clicked = False
         self.sliders = [Slider(1, 200, 200, 10, 10, default=40, name="X Axis Scale"),
                         Slider(1, 200, 200, 10, 10, default=40, name="Y Axis Scale")]
-        self.buttons = [Button(os.path.join(CurrentPath, 'assets', 'textures', 'pan_cursor.png'), (55, 50), self.PAN_EVENT, 0, "Pan"),
-                        Button(os.path.join(
-                            CurrentPath, 'assets', 'textures', 'tooltip_cursor.png'), (55, 50), self.TOOLTIP_EVENT, 1, "Point"),
-                        Button(os.path.join(CurrentPath, 'assets', 'textures', 'reset.png'),
-                               (55, 50), self.RESET_EVENT, -1, "Origin")]
+        self.buttons = [
+            Button(os.path.join(CurrentPath, 'assets', 'textures', 'pan_cursor.png'), (55, 50), self.PAN_EVENT, 0,
+                   "Pan"),
+            Button(os.path.join(
+                CurrentPath, 'assets', 'textures', 'tooltip_cursor.png'), (55, 50), self.TOOLTIP_EVENT, 1, "Point"),
+            Button(os.path.join(CurrentPath, 'assets', 'textures', 'reset.png'),
+                   (55, 50), self.RESET_EVENT, -1, "Origin")]
         self.textboxes = []
         self.d_r_boxes = [Textbox((60, 30), 18, "X-Min", WHITE, default="-10"),
                           Textbox((60, 30), 18, "X-Max", WHITE, default="10"),
@@ -313,20 +311,20 @@ class Graph:
         self.buttons.append(clear_btn)
 
     def shift_x(self, val) -> None:
-        if self.offset_x + val > self.plotting_size_x/2 - self.size[0]/2:
-            self.offset_x = self.plotting_size_x/2 - self.size[0]/2
+        if self.offset_x + val > self.plotting_size_x / 2 - self.size[0] / 2:
+            self.offset_x = self.plotting_size_x / 2 - self.size[0] / 2
             return
-        if self.offset_x + val < -(self.plotting_size_x/2 - self.size[0]/2):
-            self.offset_x = int(-(self.plotting_size_x/2 - self.size[0]/2))
+        if self.offset_x + val < -(self.plotting_size_x / 2 - self.size[0] / 2):
+            self.offset_x = int(-(self.plotting_size_x / 2 - self.size[0] / 2))
             return
         self.offset_x += val
 
     def shift_y(self, val) -> None:
-        if self.offset_y + val > self.plotting_size_y/2 - self.size[1]/2:
-            self.offset_y = self.plotting_size_y/2 - self.size[1]/2
+        if self.offset_y + val > self.plotting_size_y / 2 - self.size[1] / 2:
+            self.offset_y = self.plotting_size_y / 2 - self.size[1] / 2
             return
-        if self.offset_y + val < -(self.plotting_size_y/2 - self.size[1]/2):
-            self.offset_y = int(-(self.plotting_size_y/2 - self.size[1]/2))
+        if self.offset_y + val < -(self.plotting_size_y / 2 - self.size[1] / 2):
+            self.offset_y = int(-(self.plotting_size_y / 2 - self.size[1] / 2))
             return
         self.offset_y += val
 
@@ -336,7 +334,7 @@ class Graph:
             slider.reset()
 
     def sketch(self, all_x, all_y, relation, scale_x, scale_y, graph_surface, change) -> str | None:
-        origin = (self.plotting_size_x/2, self.plotting_size_y/2)
+        origin = (self.plotting_size_x / 2, self.plotting_size_y / 2)
 
         if (relation not in self.lines and relation not in self.alternate) or change:
 
@@ -351,18 +349,19 @@ class Graph:
                 if len(self.lines[relation]) == 0 and relation in self.alternate:
                     for point in self.alternate[relation]:
                         pygame.draw.circle(
-                            graph_surface, relation.get_colour(), (origin[0] + (point[0]*scale_x), origin[1] - (point[1]*scale_y)), 1)
+                            graph_surface, relation.get_colour(),
+                            (origin[0] + (point[0] * scale_x), origin[1] - (point[1] * scale_y)), 1)
                 return str(relation.get_expression())
-
 
         if len(self.lines[relation]) == 0 and relation in self.alternate:
             for point in self.alternate[relation]:
                 pygame.draw.circle(
-                    graph_surface, relation.get_colour(), (origin[0] + (point[0]*scale_x), origin[1] - (point[1]*scale_y)), 1)
+                    graph_surface, relation.get_colour(),
+                    (origin[0] + (point[0] * scale_x), origin[1] - (point[1] * scale_y)), 1)
 
         for line in self.lines[relation]:
             pygame.draw.aalines(graph_surface, relation.get_colour(), False, [(
-                origin[0] + (point[0]*scale_x), origin[1] - (point[1]*scale_y)) for point in line], 2)
+                origin[0] + (point[0] * scale_x), origin[1] - (point[1] * scale_y)) for point in line], 2)
 
         return None
 
@@ -371,52 +370,60 @@ class Graph:
         master_surface = pygame.Surface(self.size)
 
         all_x = [
-            i/100 for i in range(func_domain[0]*100, (func_domain[1]*100)+1)]
+            i / 100 for i in range(func_domain[0] * 100, (func_domain[1] * 100) + 1)]
         all_y = [
-            i/100 for i in range(func_range[0]*100, (func_range[1]*100)+1)]
+            i / 100 for i in range(func_range[0] * 100, (func_range[1] * 100) + 1)]
 
-        origin = (self.plotting_size_x/2, self.plotting_size_y/2)
+        origin = (self.plotting_size_x / 2, self.plotting_size_y / 2)
 
         tooltips = []
         if self.mode == self.TOOLTIP:
             mouse_x = pygame.mouse.get_pos()[0]
             mouse_y = pygame.mouse.get_pos()[1]
-            relative_x_offset = abs(-(self.plotting_size_x/2) +
-                                    (self.size[0]/2) + self.offset_x)
-            relative_y_offset = abs(-(self.plotting_size_y/2) +
-                                    (self.size[1]/2) + self.offset_y)
+            relative_x_offset = abs(-(self.plotting_size_x / 2) +
+                                    (self.size[0] / 2) + self.offset_x)
+            relative_y_offset = abs(-(self.plotting_size_y / 2) +
+                                    (self.size[1] / 2) + self.offset_y)
             relative_x = mouse_x - offset[0] + relative_x_offset
             relative_y = mouse_y - offset[1] + relative_y_offset
-            x_val = round((relative_x - origin[0])/scale_x, 2)
-            y_val = round((origin[1] - relative_y)/scale_y, 2)
+            x_val = round((relative_x - origin[0]) / scale_x, 2)
+            y_val = round((origin[1] - relative_y) / scale_y, 2)
 
-            if relative_x_offset <= relative_x <= relative_x_offset + self.size[0] and relative_y_offset <= relative_y <= relative_y_offset + self.size[1]:
+            if relative_x_offset <= relative_x <= relative_x_offset + self.size[
+                0] and relative_y_offset <= relative_y <= relative_y_offset + self.size[1]:
                 for eq in self.lines:
                     for line in self.lines[eq]:
                         for point in line:
                             y_dependant_point = False if type(point[0]) != float else True
                             if y_dependant_point and point[0] == x_val:
                                 y_display = round(float(point[1]), 2)
-                                tooltips.append([point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()), render_text(
-                                    "X: " + str(x_val), 14, color=BLACK), render_text("Y: " + str(y_display), 14, color=BLACK), y_dependant_point])
+                                tooltips.append(
+                                    [point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()),
+                                     render_text(
+                                         "X: " + str(x_val), 14, color=BLACK),
+                                     render_text("Y: " + str(y_display), 14, color=BLACK), y_dependant_point])
                                 continue
                             if not y_dependant_point and point[1] == y_val:
                                 x_display = round(float(point[0]), 2)
-                                tooltips.append([point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()), render_text(
-                                    "X: " + str(x_display), 14, color=BLACK), render_text("Y: " + str(y_val), 14, color=BLACK), y_dependant_point])
+                                tooltips.append(
+                                    [point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()),
+                                     render_text(
+                                         "X: " + str(x_display), 14, color=BLACK),
+                                     render_text("Y: " + str(y_val), 14, color=BLACK), y_dependant_point])
                                 continue
 
-        if self.cache != {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y, 'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}:
+        if self.cache != {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y,
+                          'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}:
             if len(range(0, func_domain[1])) > len(range(func_domain[0], 0)):
-                plotting_size_x = (len(range(0, func_domain[1]))+1)*2*scale_x
+                plotting_size_x = (len(range(0, func_domain[1])) + 1) * 2 * scale_x
             else:
-                plotting_size_x = (len(range(func_domain[0], 0))+1)*2*scale_x
+                plotting_size_x = (len(range(func_domain[0], 0)) + 1) * 2 * scale_x
             if plotting_size_x < self.size[0]:
                 plotting_size_x = self.size[0]
             if len(range(0, func_range[1])) > len(range(func_range[0], 0)):
-                plotting_size_y = (len(range(0, func_range[1]))+1)*2*scale_y
+                plotting_size_y = (len(range(0, func_range[1])) + 1) * 2 * scale_y
             else:
-                plotting_size_y = (len(range(func_range[0], 0))+1)*2*scale_y
+                plotting_size_y = (len(range(func_range[0], 0)) + 1) * 2 * scale_y
             if plotting_size_y < self.size[1]:
                 plotting_size_y = self.size[1]
             self.plotting_size_x = plotting_size_x
@@ -429,16 +436,17 @@ class Graph:
             y_accumulated = 0
             for tooltip in tooltips:
                 point_coordinate = (
-                    origin[0] + int(tooltip[0]*scale_x), origin[1] - int(tooltip[1]*scale_y))
+                    origin[0] + int(tooltip[0] * scale_x), origin[1] - int(tooltip[1] * scale_y))
                 pygame.draw.circle(surf, BLACK, point_coordinate, 2)
                 rect = pygame.Rect(
-                    point_coordinate[0] + 10 + x_accumulated, point_coordinate[1] + 10 + y_accumulated, tooltip[2].get_width() + 15, 65)
+                    point_coordinate[0] + 10 + x_accumulated, point_coordinate[1] + 10 + y_accumulated,
+                    tooltip[2].get_width() + 15, 65)
                 for i in prev_rects:
                     if rect.colliderect(i):
                         if tooltip[5]:
                             x_accumulated += i.width + 10
                         else:
-                            y_accumulated += (i.height*2) + 10
+                            y_accumulated += (i.height * 2) + 10
                 rect.left = point_coordinate[0] + 10 + x_accumulated
                 rect.top = point_coordinate[1] + 10 + y_accumulated
                 pygame.draw.aaline(surf, BLACK, point_coordinate, (rect.left, rect.top))
@@ -452,19 +460,20 @@ class Graph:
                 prev_rects.append(rect)
 
             master_surface.blit(
-                surf, (-(self.plotting_size_x/2) + (self.size[0]/2) + self.offset_x, -(self.plotting_size_y/2) + (self.size[1]/2) + self.offset_y))
+                surf, (-(self.plotting_size_x / 2) + (self.size[0] / 2) + self.offset_x,
+                       -(self.plotting_size_y / 2) + (self.size[1] / 2) + self.offset_y))
 
             return master_surface
 
         overarching_size = (plotting_size_x, plotting_size_y)
 
-        origin = (plotting_size_x/2, plotting_size_y/2)
+        origin = (plotting_size_x / 2, plotting_size_y / 2)
 
-        viewport = (((plotting_size_x/2)-self.offset_x)-(self.size[0]/2),
-                    ((plotting_size_y/2)-self.offset_y)-(self.size[1]/2))
+        viewport = (((plotting_size_x / 2) - self.offset_x) - (self.size[0] / 2),
+                    ((plotting_size_y / 2) - self.offset_y) - (self.size[1] / 2))
 
-        viewport_max = (((plotting_size_x/2)-self.offset_x)-(self.size[0]/2)+self.size[0],
-                        ((plotting_size_y/2)-self.offset_y)-(self.size[1]/2)+self.size[1])
+        viewport_max = (((plotting_size_x / 2) - self.offset_x) - (self.size[0] / 2) + self.size[0],
+                        ((plotting_size_y / 2) - self.offset_y) - (self.size[1] / 2) + self.size[1])
 
         # Create surface and fill background
 
@@ -473,9 +482,10 @@ class Graph:
 
         # Draw X and Y axis
         pygame.draw.line(graph_surface, BLACK, (0,
-                         overarching_size[1]/2), (overarching_size[0], overarching_size[1]/2))
+                                                overarching_size[1] / 2),
+                         (overarching_size[0], overarching_size[1] / 2))
         pygame.draw.line(
-            graph_surface, BLACK, (overarching_size[0]/2, 0), (overarching_size[0]/2, overarching_size[1]))
+            graph_surface, BLACK, (overarching_size[0] / 2, 0), (overarching_size[0] / 2, overarching_size[1]))
 
         # Draw origin
         pygame.draw.circle(graph_surface, BLACK, origin, 3)
@@ -491,25 +501,25 @@ class Graph:
             if scale_x > 75:
                 half = num - 0.5
                 if half > 0:
-                    coordinate = (origin[0] + (scale_x*half), origin[1])
+                    coordinate = (origin[0] + (scale_x * half), origin[1])
                     if in_viewport(coordinate, viewport, viewport_max):
                         pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
                         graph_surface.blit(render_text(
                             str(half), 10, color=DARK_GREY), (coordinate[0] - 2, coordinate[1] + 7))
                 if half < 0:
-                    coordinate = (origin[0] - (scale_x*abs(half)), origin[1])
+                    coordinate = (origin[0] - (scale_x * abs(half)), origin[1])
                     if in_viewport(coordinate, viewport, viewport_max):
                         pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
                         graph_surface.blit(render_text(
                             str(half), 10, color=DARK_GREY), (coordinate[0] - 6, coordinate[1] + 7))
             if num > 0:
-                coordinate = (origin[0] + (scale_x*num), origin[1])
+                coordinate = (origin[0] + (scale_x * num), origin[1])
                 if in_viewport(coordinate, viewport, viewport_max):
                     pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
                     graph_surface.blit(render_text(
                         str(num), 10, color=DARK_GREY), (coordinate[0] - 2, coordinate[1] + 7))
             if num < 0:
-                coordinate = (origin[0] - (scale_x*abs(num)), origin[1])
+                coordinate = (origin[0] - (scale_x * abs(num)), origin[1])
                 if in_viewport(coordinate, viewport, viewport_max):
                     pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
                     graph_surface.blit(render_text(
@@ -524,27 +534,27 @@ class Graph:
             if scale_y > 75:
                 half = num - 0.5
                 if half > 0:
-                    coordinate = (origin[0], origin[1] - (scale_y*half))
+                    coordinate = (origin[0], origin[1] - (scale_y * half))
                     if in_viewport(coordinate, viewport, viewport_max):
                         pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
                         text = render_text(str(half), 10, color=DARK_GREY)
                         graph_surface.blit(
                             text, (coordinate[0] - 12 - text.get_width(), coordinate[1] - 5))
                 if half < 0:
-                    coordinate = (origin[0], origin[1] + (scale_y*abs(half)))
+                    coordinate = (origin[0], origin[1] + (scale_y * abs(half)))
                     if in_viewport(coordinate, viewport, viewport_max):
                         pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
                         graph_surface.blit(render_text(
                             str(half), 10, color=DARK_GREY), (coordinate[0] + 8, coordinate[1] - 5))
             if num > 0:
-                coordinate = (origin[0], origin[1] - (scale_y*num))
+                coordinate = (origin[0], origin[1] - (scale_y * num))
                 if in_viewport(coordinate, viewport, viewport_max):
                     pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
                     text = render_text(str(num), 10, color=DARK_GREY)
                     graph_surface.blit(
                         text, (coordinate[0] - 12 - text.get_width(), coordinate[1] - 5))
             if num < 0:
-                coordinate = (origin[0], origin[1] + (scale_y*abs(num)))
+                coordinate = (origin[0], origin[1] + (scale_y * abs(num)))
                 if in_viewport(coordinate, viewport, viewport_max):
                     pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
                     graph_surface.blit(render_text(
@@ -571,7 +581,8 @@ class Graph:
             low_res_warning(low_res)
 
         master_surface.blit(
-            graph_surface, (-(overarching_size[0]/2) + (self.size[0]/2) + self.offset_x, -(overarching_size[1]/2) + (self.size[1]/2) + self.offset_y))
+            graph_surface, (-(overarching_size[0] / 2) + (self.size[0] / 2) + self.offset_x,
+                            -(overarching_size[1] / 2) + (self.size[1] / 2) + self.offset_y))
 
         self.cache = {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x,
                       'scale_y': scale_y, 'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}
@@ -666,6 +677,6 @@ class Graph:
                     slider.current_x = slider.size_x + slider.radius
                     continue
                 slider.current_x = pygame.mouse.get_pos()[
-                    0] - slider.get_pos()[0]
+                                       0] - slider.get_pos()[0]
 
         return clicked
