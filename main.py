@@ -45,6 +45,7 @@ WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags, 8)
 WIN.set_alpha(None)
 pygame.display.set_caption("Insidia")
 
+# Change current path based on scope
 if getattr(sys, 'frozen', False):
     CurrentPath = sys._MEIPASS
 else:
@@ -71,7 +72,7 @@ def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
     return text
 
 
-# Loading screen
+# Loading screen messages
 LOAD_MESSAGES = ["Compiling infinite digits of pi... this could take a while.",
                  "Conjuring up a mathematical genie to do the calculations for us... Sit tight!",
                  "Summoning the spirits of ancient mathematicians... hope they're in a good mood.",
@@ -81,6 +82,8 @@ LOAD_MESSAGES = ["Compiling infinite digits of pi... this could take a while.",
                  "Assembling a team of mathemagicians to tackle your calculations... Abracadabra!",
                  "Initiating the mathematical singularity... brace for impact!"]
 
+
+# Display a random loading message whilst pygame initialises
 init_text = render_text(choice(LOAD_MESSAGES), 30, font=TITLE)
 WIN.blit(ICON_SPLASH, (WIDTH/2 - ICON_SPLASH.get_width() /
                        2, HEIGHT/2 - ICON_SPLASH.get_height()/2 - init_text.get_height()))
@@ -96,6 +99,7 @@ HOME, GRAPHING = 0, 1
 RETRACTED, EXTENDED = 0, 1
 SIDEBAR_SURFACE, SIDEBAR_BUTTON, SIDEBAR_PAGES = 0, 1, 2
 
+# Graphs shown on the demo page
 SQUARE_WAVE = "y = (4/pi)*sin(pi*x)+(4/pi)*(1/3)*sin(3*pi*x)+(4/pi)*(1/5)*sin(5*pi*x)+(4/pi)*(1/7)*sin(7*pi*x)+(4/pi)*(1/9)*sin(9*pi*x)"
 UGLY_CHAOS = "sin(cos(tan(x*y))) = sin(cos(tan(x)))"
 
@@ -133,8 +137,6 @@ def get_sidebar(sidebar, status):
             sidebar_surface.blit(
                 page_button, (SIDEBAR_PADDING, 100+(index*40)))
             pages[index] = page_rect
-
-        # Page specific controls
 
         return sidebar_surface, close_button, pages
 
