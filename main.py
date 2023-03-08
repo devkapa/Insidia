@@ -40,22 +40,12 @@ WIDTH, HEIGHT = 1200, 800
 SIDEBAR_WIDTH, SIDEBAR_HEIGHT = 250, HEIGHT
 SIDEBAR_PADDING = 10
 
-# Create an opaque window surface with defined width and height, and set a title
-WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags, 8)
-WIN.set_alpha(None)
-pygame.display.set_caption("Insidia")
 
 # Change current path based on scope
 if getattr(sys, 'frozen', False):
     CurrentPath = sys._MEIPASS
 else:
     CurrentPath = os.path.dirname(__file__)
-
-# Set the icon of the window
-ICON = pygame.image.load(os.path.join(
-    CurrentPath, 'assets', 'textures', 'logo.png'))
-pygame.display.set_icon(ICON)
-ICON_SPLASH = pygame.transform.scale(ICON, (400, 400))
 
 
 # Fonts
@@ -81,15 +71,6 @@ LOAD_MESSAGES = ["Compiling infinite digits of pi... this could take a while.",
                  "Spinning up the quantum calculator... it may take some time to stabilize.",
                  "Assembling a team of mathemagicians to tackle your calculations... Abracadabra!",
                  "Initiating the mathematical singularity... brace for impact!"]
-
-
-# Display a random loading message whilst pygame initialises
-init_text = render_text(choice(LOAD_MESSAGES), 30, font=TITLE)
-WIN.blit(ICON_SPLASH, (WIDTH/2 - ICON_SPLASH.get_width() /
-                       2, HEIGHT/2 - ICON_SPLASH.get_height()/2 - init_text.get_height()))
-WIN.blit(init_text, (WIDTH/2 - init_text.get_width() /
-                     2, HEIGHT/2 + ICON_SPLASH.get_height()/2 + 10))
-pygame.display.update()
 
 # Frames per second constant
 FPS = 120
@@ -147,7 +128,7 @@ def get_sidebar(sidebar, status):
         return open_text, open_button
 
 
-def draw_home(sidebar_offset, graph):
+def draw_home(WIN, sidebar_offset, graph):
     WIN.fill(BACKGROUND_COLOUR)
     title = render_text("Insidia: Your partner in math", 40, font=TITLE)
     WIN.blit(title, (sidebar_offset + 80, 80))
@@ -170,7 +151,7 @@ def draw_home(sidebar_offset, graph):
     WIN.blit(subtitle, (sidebar_offset + 80, 530))
 
 
-def draw_graphing(sidebar_offset, graph, rels, func_domain, func_range):
+def draw_graphing(WIN, sidebar_offset, graph, rels, func_domain, func_range):
     WIN.fill(BACKGROUND_COLOUR)
     graph.set_pos((sidebar_offset + 70, 50))
     y_accumulated = 0
@@ -211,6 +192,27 @@ def draw_graphing(sidebar_offset, graph, rels, func_domain, func_range):
 
 
 def main():
+
+
+    # Create an opaque window surface with defined width and height, and set a title
+    WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags, 8)
+    WIN.set_alpha(None)
+    pygame.display.set_caption("Insidia")
+
+    # Set the icon of the window
+    ICON = pygame.image.load(os.path.join(
+        CurrentPath, 'assets', 'textures', 'logo.png'))
+    pygame.display.set_icon(ICON)
+
+    ICON_SPLASH = pygame.transform.scale(ICON, (400, 400))
+
+    # Display a random loading message whilst pygame initialises
+    init_text = render_text(choice(LOAD_MESSAGES), 30, font=TITLE)
+    WIN.blit(ICON_SPLASH, (WIDTH/2 - ICON_SPLASH.get_width() /
+                                     2, HEIGHT/2 - ICON_SPLASH.get_height()/2 - init_text.get_height()))
+    WIN.blit(init_text, (WIDTH/2 - init_text.get_width() /
+                                   2, HEIGHT/2 + ICON_SPLASH.get_height()/2 + 10))
+    pygame.display.update()
 
     # Initialise pygame's clock and start the game loop
     clock = pygame.time.Clock()
@@ -333,7 +335,7 @@ def main():
                             current_state = state
 
         if current_state == HOME:
-            draw_home(230 if sidebar_state == EXTENDED else 0, demo_graph)
+            draw_home(WIN, 230 if sidebar_state == EXTENDED else 0, demo_graph)
             buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
             clicked = demo_graph.handle_changes(buttons_pressed, clicked)
 
@@ -390,7 +392,7 @@ def main():
             else:
                 func_domain = last_domain
                 func_range = last_range
-            draw_graphing(230 if sidebar_state ==
+            draw_graphing(WIN, 230 if sidebar_state ==
                           EXTENDED else 0, calc_graph, rels, func_domain, func_range)
             buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
             clicked = calc_graph.handle_changes(buttons_pressed, clicked)

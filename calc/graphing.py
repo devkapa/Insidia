@@ -3,6 +3,7 @@ import sys
 import pygame
 import symengine
 import sympy
+from multiprocessing.pool import ThreadPool
 from symengine import Symbol, sympify
 from widgets.slider import Slider
 from widgets.button import Button
@@ -71,11 +72,7 @@ def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
 
 
 def in_viewport(coordinate, viewport, viewport_max):
-    return True if coordinate[0] >= viewport[0] and coordinate[0] <= viewport_max[0] and coordinate[1] >= viewport[1] and coordinate[1] <= viewport_max[1] else False
-
-
-def in_x_viewport(coordinate, viewport, viewport_max):
-    return True if coordinate[0] >= viewport[0] and coordinate[0] <= viewport_max[0] else False
+    return True if viewport[0] <= coordinate[0] <= viewport_max[0] and viewport[1] <= coordinate[1] <= viewport_max[1] else False
 
 
 def low_res_warning(x):
@@ -116,6 +113,91 @@ def factorial_checker(expression):
             return False
 
 
+def calculate_x_y(relation, all_x, all_y):
+    x_exprs, y_exprs = relation.f()
+
+    symbol_x = Symbol('x')
+    symbol_y = Symbol('y')
+
+    lines_to_draw = []
+
+    for expr in y_exprs.args:
+
+        if type(expr) == symengine.Pow:
+            if type(expr.args[1]) == symengine.Rational:
+                num, den = expr.args[1].get_num_den()
+                real_root = symengine.sympify(
+                    sympy.real_root(sympy.Pow(expr.args[0], num), den))
+                expr = real_root
+            else:
+                expr = multisolver(expr)
+
+        points = []
+        for x_val in all_x:
+            if factorial_checker(expr):
+                if x_val < 0 and x_val % 1 == 0:
+                    if len(points) > 1:
+                        lines_to_draw.append(points)
+                    points = []
+                    continue
+            y_val = expr.xreplace({symbol_x: x_val})
+            try:
+                y_val = symengine.Float(y_val)
+            except RuntimeError:
+                    pass
+            if not y_val.is_real:
+                if len(points) > 1:
+                    lines_to_draw.append(points)
+                points = []
+                continue
+            if y_val < all_y[0] or y_val > all_y[-1]:
+                if len(points) > 1:
+                    lines_to_draw.append(points)
+                points = []
+                continue
+            points.append((x_val, y_val))
+        if len(points) > 1:
+            lines_to_draw.append(points)
+
+    if len(y_exprs.args) == 0:
+        for expr in x_exprs.args:
+            points = []
+            for y_val in all_y:
+                x_val = expr.xreplace({symbol_y: y_val})
+                if not x_val.is_real:
+                    if len(points) > 1:
+                        lines_to_draw.append(points)
+                    points = []
+                    continue
+                if x_val < all_x[0] or x_val > all_x[-1]:
+                    if len(points) > 1:
+                        lines_to_draw.append(points)
+                    points = []
+                    continue
+                points.append((x_val, y_val))
+            if len(points) > 1:
+                lines_to_draw.append(points)
+
+    alternate_renders = []
+
+    if len(lines_to_draw) == 0:
+        if relation.lhs != relation.rhs:
+            alternate_renders = []
+            for x_val in all_x:
+                if not (x_val*10).is_integer():
+                    continue
+                for y_val in all_y:
+                    if not (y_val*10).is_integer():
+                        continue
+                    ex = sympify(relation.lhs + " - " + relation.rhs)
+                    ans = ex.xreplace(
+                        {symbol_x: x_val, symbol_y: y_val})
+                    if ans.is_real and -0.1 <= ans <= 0.1:
+                        alternate_renders.append((x_val, y_val))
+
+    return lines_to_draw, alternate_renders
+
+
 class Graph:
 
     PAN, TOOLTIP = 0, 1
@@ -139,6 +221,7 @@ class Graph:
     lines: dict
     alternate: dict
     used_colours: list
+    pool: ThreadPool
 
     def __init__(self, size, equations=0, clear=False) -> None:
         self.mode = self.PAN
@@ -163,8 +246,8 @@ class Graph:
         self.textboxes = []
         self.d_r_boxes = [Textbox((60, 30), 18, "X-Min", WHITE, default="-10"),
                           Textbox((60, 30), 18, "X-Max", WHITE, default="10"),
-                          Textbox((60, 30), 18, "Y-Min", WHITE, default="-5"),
-                          Textbox((60, 30), 18, "Y-Max", WHITE, default="5")]
+                          Textbox((60, 30), 18, "Y-Min", WHITE, default="-10"),
+                          Textbox((60, 30), 18, "Y-Max", WHITE, default="10")]
         self.lines = {}
         self.alternate = {}
         self.used_colours = []
@@ -175,6 +258,7 @@ class Graph:
                 i += 1
         if clear:
             self.add_clear_button()
+        self.pool = ThreadPool(processes=1)
 
     def extend(self, size_x) -> None:
         self.size = (size_x, self.size[1])
@@ -253,95 +337,23 @@ class Graph:
 
     def sketch(self, all_x, all_y, relation, scale_x, scale_y, graph_surface, change) -> str | None:
         origin = (self.plotting_size_x/2, self.plotting_size_y/2)
-        x_exprs, y_exprs = relation.f()
-
-        symbol_x = Symbol('x')
-        symbol_y = Symbol('y')
 
         if (relation not in self.lines and relation not in self.alternate) or change:
 
-            lines_to_draw = []
+            async_result = self.pool.apply_async(calculate_x_y, (relation, all_x, all_y,))
 
-            for expr in y_exprs.args:
-
-                if type(expr) == symengine.Pow:
-                    if type(expr.args[1]) == symengine.Rational:
-                        num, den = expr.args[1].get_num_den()
-                        real_root = symengine.sympify(
-                            sympy.real_root(sympy.Pow(expr.args[0], num), den))
-                        expr = real_root
-                else:
-                    expr = multisolver(expr)
-
-                points = []
-                for x_val in all_x:
-                    if factorial_checker(expr):
-                        if x_val < 0 and x_val % 1 == 0:
-                            if len(points) > 1:
-                                lines_to_draw.append(points)
-                            points = []
-                            continue
-                    y_val = expr.xreplace({symbol_x: x_val})
-                    try:
-                        y_val = symengine.Float(y_val)
-                    except RuntimeError:
-                        pass
-                    if not y_val.is_real:
-                        if len(points) > 1:
-                            lines_to_draw.append(points)
-                        points = []
-                        continue
-                    if y_val < all_y[0] or y_val > all_y[-1]:
-                        if len(points) > 1:
-                            lines_to_draw.append(points)
-                        points = []
-                        continue
-                    points.append((x_val, y_val))
-                if len(points) > 1:
-                    lines_to_draw.append(points)
-
-            if len(y_exprs.args) == 0:
-                for expr in x_exprs.args:
-                    points = []
-                    for y_val in all_y:
-                        x_val = expr.xreplace({symbol_y: y_val})
-                        if not x_val.is_real:
-                            if len(points) > 1:
-                                lines_to_draw.append(points)
-                            points = []
-                            continue
-                        if x_val < all_x[0] or x_val > all_x[-1]:
-                            if len(points) > 1:
-                                lines_to_draw.append(points)
-                            points = []
-                            continue
-                        points.append((x_val, y_val))
-                    if len(points) > 1:
-                        lines_to_draw.append(points)
+            lines_to_draw, alternate_renders = async_result.get()
 
             self.lines[relation] = lines_to_draw
+            self.alternate[relation] = alternate_renders
 
-            if len(self.lines[relation]) == 0:
-                if relation.lhs != relation.rhs:
-                    alternate_renders = []
-                    for x_val in all_x:
-                        if not (x_val*10).is_integer():
-                            continue
-                        for y_val in all_y:
-                            if not (y_val*10).is_integer():
-                                continue
-                            ex = sympify(relation.lhs + " - " + relation.rhs)
-                            ans = ex.xreplace(
-                                {symbol_x: x_val, symbol_y: y_val})
-                            if ans.is_real and -0.1 <= ans <= 0.1:
-                                alternate_renders.append((x_val, y_val))
-                    self.alternate[relation] = alternate_renders
-                    if len(alternate_renders) > 0:
-                        if len(self.lines[relation]) == 0 and relation in self.alternate:
-                            for point in self.alternate[relation]:
-                                pygame.draw.circle(
-                                    graph_surface, relation.get_colour(), (origin[0] + (point[0]*scale_x), origin[1] - (point[1]*scale_y)), 1)
-                        return str(relation.get_expression())
+            if len(alternate_renders) > 0:
+                if len(self.lines[relation]) == 0 and relation in self.alternate:
+                    for point in self.alternate[relation]:
+                        pygame.draw.circle(
+                            graph_surface, relation.get_colour(), (origin[0] + (point[0]*scale_x), origin[1] - (point[1]*scale_y)), 1)
+                return str(relation.get_expression())
+
 
         if len(self.lines[relation]) == 0 and relation in self.alternate:
             for point in self.alternate[relation]:
@@ -376,13 +388,19 @@ class Graph:
             relative_x = mouse_x - offset[0] + relative_x_offset
             relative_y = mouse_y - offset[1] + relative_y_offset
             x_val = round((relative_x - origin[0])/scale_x, 2)
+            y_val = round((origin[1] - relative_y)/scale_y, 2)
 
             if relative_x_offset <= relative_x <= relative_x_offset + self.size[0] and relative_y_offset <= relative_y <= relative_y_offset + self.size[1]:
                 for eq in self.lines:
                     for line in self.lines[eq]:
                         for point in line:
-                            if point[0] == x_val:
+                            y_dependant_point = 0 if type(point[0]) != float else 1
+                            if point[0] == x_val and y_dependant_point:
                                 y_val = round(float(point[1]), 2)
+                                tooltips.append([point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()), render_text(
+                                    "X: " + str(x_val), 14, color=BLACK), render_text("Y: " + str(y_val), 14, color=BLACK)])
+                            if point[1] == y_val and not y_dependant_point:
+                                x_val = round(float(point[0]), 2)
                                 tooltips.append([point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()), render_text(
                                     "X: " + str(x_val), 14, color=BLACK), render_text("Y: " + str(y_val), 14, color=BLACK)])
 
@@ -405,16 +423,15 @@ class Graph:
             surf = self.last_surface.copy()
 
             prev_rects = []
+            x_accumulated = 0
             for tooltip in tooltips:
                 point_coordinate = (
                     origin[0] + int(tooltip[0]*scale_x), origin[1] - int(tooltip[1]*scale_y))
                 pygame.draw.circle(surf, BLACK, point_coordinate, 2)
-                x_accumulated = 0
                 rect = pygame.Rect(
                     point_coordinate[0] + 10 + x_accumulated, point_coordinate[1] + 10, tooltip[2].get_width() + 15, 65)
                 for i in prev_rects:
-                    rect.left += x_accumulated
-                    if i.colliderect(rect):
+                    if rect.colliderect(i):
                         x_accumulated += i.width + 10
                 rect.left = point_coordinate[0] + 10 + x_accumulated
                 pygame.draw.rect(surf, WHITE, rect)
@@ -541,6 +558,7 @@ class Graph:
                                  relation, scale_x, scale_y, graph_surface, changed_d_r)
             if sketch is not None:
                 low_res.append(sketch)
+
 
         if len(low_res) > 0:
             low_res_warning(low_res)

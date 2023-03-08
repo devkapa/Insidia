@@ -21,14 +21,16 @@ class Relation:
         y = Symbol('y')
 
         try:
-            self.x_values = sympify(solveset(self.get_expression(), x))
-        except:
-            self.x_values = EmptySet
-
-        try:
             self.y_values = sympify(solveset(self.get_expression(), y))
+            self.x_values = EmptySet
         except:
             self.y_values = EmptySet
+
+        if len(self.y_values.args) == 0:
+            try:
+                self.x_values = sympify(solveset(self.get_expression(), x))
+            except:
+                self.x_values = EmptySet
 
     def get_original(self) -> str:
         return self.original_str
