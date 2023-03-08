@@ -394,15 +394,17 @@ class Graph:
                 for eq in self.lines:
                     for line in self.lines[eq]:
                         for point in line:
-                            y_dependant_point = 0 if type(point[0]) != float else 1
-                            if point[0] == x_val and y_dependant_point:
-                                y_val = round(float(point[1]), 2)
+                            y_dependant_point = False if type(point[0]) != float else True
+                            if y_dependant_point and point[0] == x_val:
+                                y_display = round(float(point[1]), 2)
                                 tooltips.append([point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()), render_text(
-                                    "X: " + str(x_val), 14, color=BLACK), render_text("Y: " + str(y_val), 14, color=BLACK)])
-                            if point[1] == y_val and not y_dependant_point:
-                                x_val = round(float(point[0]), 2)
+                                    "X: " + str(x_val), 14, color=BLACK), render_text("Y: " + str(y_display), 14, color=BLACK), y_dependant_point])
+                                continue
+                            if not y_dependant_point and point[1] == y_val:
+                                x_display = round(float(point[0]), 2)
                                 tooltips.append([point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()), render_text(
-                                    "X: " + str(x_val), 14, color=BLACK), render_text("Y: " + str(y_val), 14, color=BLACK)])
+                                    "X: " + str(x_display), 14, color=BLACK), render_text("Y: " + str(y_val), 14, color=BLACK), y_dependant_point])
+                                continue
 
         if self.cache != {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y, 'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}:
             if len(range(0, func_domain[1])) > len(range(func_domain[0], 0)):
@@ -424,23 +426,29 @@ class Graph:
 
             prev_rects = []
             x_accumulated = 0
+            y_accumulated = 0
             for tooltip in tooltips:
                 point_coordinate = (
                     origin[0] + int(tooltip[0]*scale_x), origin[1] - int(tooltip[1]*scale_y))
                 pygame.draw.circle(surf, BLACK, point_coordinate, 2)
                 rect = pygame.Rect(
-                    point_coordinate[0] + 10 + x_accumulated, point_coordinate[1] + 10, tooltip[2].get_width() + 15, 65)
+                    point_coordinate[0] + 10 + x_accumulated, point_coordinate[1] + 10 + y_accumulated, tooltip[2].get_width() + 15, 65)
                 for i in prev_rects:
                     if rect.colliderect(i):
-                        x_accumulated += i.width + 10
+                        if tooltip[5]:
+                            x_accumulated += i.width + 10
+                        else:
+                            y_accumulated += (i.height*2) + 10
                 rect.left = point_coordinate[0] + 10 + x_accumulated
+                rect.top = point_coordinate[1] + 10 + y_accumulated
+                pygame.draw.aaline(surf, BLACK, point_coordinate, (rect.left, rect.top))
                 pygame.draw.rect(surf, WHITE, rect)
                 surf.blit(tooltip[2], (point_coordinate[0] +
-                          15 + x_accumulated, point_coordinate[1] + 15))
+                                       15 + x_accumulated, point_coordinate[1] + 15 + y_accumulated))
                 surf.blit(tooltip[3], (point_coordinate[0] +
-                          15 + x_accumulated, point_coordinate[1] + 35))
+                                       15 + x_accumulated, point_coordinate[1] + 35 + y_accumulated))
                 surf.blit(tooltip[4], (point_coordinate[0] +
-                          15 + x_accumulated, point_coordinate[1] + 55))
+                                       15 + x_accumulated, point_coordinate[1] + 55 + y_accumulated))
                 prev_rects.append(rect)
 
             master_surface.blit(
