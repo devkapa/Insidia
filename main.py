@@ -77,11 +77,15 @@ HOME, GRAPHING = 0, 1
 RETRACTED, EXTENDED = 0, 1
 SIDEBAR_SURFACE, SIDEBAR_BUTTON, SIDEBAR_PAGES = 0, 1, 2
 
-# Graphs shown on the demo page
-SQUARE_WAVE = "y = (4/pi)*sin(pi*x)+(4/pi)*(1/3)*sin(3*pi*x)+(4/pi)*(1/5)*sin(5*pi*x)+(4/pi)*(1/7)*sin(7*pi*x)+(4/pi)*(1/9)*sin(9*pi*x)"
-UGLY_CHAOS = "sin(cos(tan(x*y))) = sin(cos(tan(x)))"
 
-home_rels = [Relation(SQUARE_WAVE, (168, 113, 255))]
+# Graphs shown on the demo page
+def square_wave(accuracy):
+    i = 3
+    eq = "y = (4/pi)*sin(pi*x)"
+    while i <= accuracy:
+        eq += f"+(4/pi)*(1/{i})*sin({i}*pi*x)"
+        i += 2
+    return eq
 
 
 # Create a sidebar depending on whether it is extended or not
@@ -125,7 +129,7 @@ def get_sidebar(sidebar, status):
         return open_text, open_button
 
 
-def draw_home(win, sidebar_offset, graph):
+def draw_home(win, sidebar_offset, graph, home_rels):
     win.fill(BACKGROUND_COLOUR)
     title = render_text("Insidia: Your partner in math", 40, font=TITLE)
     win.blit(title, (sidebar_offset + 80, 80))
@@ -212,6 +216,8 @@ def main():
     win.blit(init_text, (WIDTH / 2 - init_text.get_width() /
                          2, HEIGHT / 2 + icon_splash.get_height() / 2 + 10))
     pygame.display.update()
+
+    home_rels = [Relation(square_wave(31), (168, 113, 255))]
 
     # Initialise pygame's clock and start the game loop
     clock = pygame.time.Clock()
@@ -335,7 +341,7 @@ def main():
                             current_state = state
 
         if current_state == HOME:
-            draw_home(win, 230 if sidebar_state == EXTENDED else 0, demo_graph)
+            draw_home(win, 230 if sidebar_state == EXTENDED else 0, demo_graph, home_rels)
             buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
             clicked = demo_graph.handle_changes(buttons_pressed, clicked)
 
