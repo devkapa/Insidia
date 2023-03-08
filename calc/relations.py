@@ -49,5 +49,5 @@ class Relation:
     def get_colour(self) -> tuple:
         return self.colour
 
-    def f(self) -> int:
+    def f(self) -> tuple:
         return self.x_values, self.y_values

@@ -11,7 +11,6 @@ from calc.relations import Relation
 from widgets.textbox import Textbox
 from tkinter import messagebox
 
-
 # Versioning
 version = "alpha-1.0"
 
@@ -40,13 +39,11 @@ WIDTH, HEIGHT = 1200, 800
 SIDEBAR_WIDTH, SIDEBAR_HEIGHT = 250, HEIGHT
 SIDEBAR_PADDING = 10
 
-
 # Change current path based on scope
 if getattr(sys, 'frozen', False):
     CurrentPath = sys._MEIPASS
 else:
     CurrentPath = os.path.dirname(__file__)
-
 
 # Fonts
 TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
@@ -101,22 +98,22 @@ def get_sidebar(sidebar, status):
         close_text = render_text("X", 35 if close_button.collidepoint(
             pygame.mouse.get_pos()) else 30, font=TITLE)
         sidebar_surface.blit(close_text, (SIDEBAR_WIDTH -
-                             close_text.get_width() - SIDEBAR_PADDING, SIDEBAR_PADDING))
+                                          close_text.get_width() - SIDEBAR_PADDING, SIDEBAR_PADDING))
 
         # Pages
         pages = ["Home", "Graphing Calculator"]
         pygame.display.set_caption(f"{pages[status]} • Insidia")
         for index, page in enumerate(pages):
             page_button = pygame.Surface(
-                (SIDEBAR_WIDTH - (SIDEBAR_PADDING*2), 30))
+                (SIDEBAR_WIDTH - (SIDEBAR_PADDING * 2), 30))
             page_rect = pygame.Rect(
-                (SIDEBAR_PADDING, 100+(index*40)), (SIDEBAR_WIDTH - (SIDEBAR_PADDING*2), 30))
+                (SIDEBAR_PADDING, 100 + (index * 40)), (SIDEBAR_WIDTH - (SIDEBAR_PADDING * 2), 30))
             page_button.fill(SIDEBAR_HIGHLIGHT if status == index or page_rect.collidepoint(
                 pygame.mouse.get_pos()) else SIDEBAR_COLOUR)
             page_text = render_text(page, 20)
             page_button.blit(page_text, (SIDEBAR_PADDING, 5))
             sidebar_surface.blit(
-                page_button, (SIDEBAR_PADDING, 100+(index*40)))
+                page_button, (SIDEBAR_PADDING, 100 + (index * 40)))
             pages[index] = page_rect
 
         return sidebar_surface, close_button, pages
@@ -128,54 +125,57 @@ def get_sidebar(sidebar, status):
         return open_text, open_button
 
 
-def draw_home(WIN, sidebar_offset, graph):
-    WIN.fill(BACKGROUND_COLOUR)
+def draw_home(win, sidebar_offset, graph):
+    win.fill(BACKGROUND_COLOUR)
     title = render_text("Insidia: Your partner in math", 40, font=TITLE)
-    WIN.blit(title, (sidebar_offset + 80, 80))
-    WIN.blit(graph.create((-10, 10), (-2, 2), home_rels, (sidebar_offset + 80, 190), scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
-             (sidebar_offset + 80, 190))
+    win.blit(title, (sidebar_offset + 80, 80))
+    win.blit(
+        graph.create((-10, 10), (-2, 2), home_rels, (sidebar_offset + 80, 190), scale_x=graph.get_sliders()[0].value(),
+                     scale_y=graph.get_sliders()[1].value()),
+        (sidebar_offset + 80, 190))
     graph.set_pos((sidebar_offset + 80, 190))
     y_accumulated = 0
     for slider in graph.get_sliders():
         surface = slider.create()
-        WIN.blit(surface, (sidebar_offset + 700, 190 + y_accumulated))
+        win.blit(surface, (sidebar_offset + 700, 190 + y_accumulated))
         slider.set_pos((sidebar_offset + 700, 190 + y_accumulated))
         y_accumulated += surface.get_height() + 20
     x_accumulated = 0
     for button in graph.get_buttons():
-        button.create(WIN, graph.get_mode(), sidebar_offset + 710 +
+        button.create(win, graph.get_mode(), sidebar_offset + 710 +
                       x_accumulated, 190 + y_accumulated)
         x_accumulated += button.size[0] + 15
     subtitle = render_text(
-        "Math no longer has to be criminal. Visualise stunning, interactive graphs. Get started by exploring the sidebar.", 15)
-    WIN.blit(subtitle, (sidebar_offset + 80, 530))
+        "Math no longer has to be criminal. Visualise stunning, interactive graphs. Get started by exploring the sidebar.",
+        15)
+    win.blit(subtitle, (sidebar_offset + 80, 530))
 
 
-def draw_graphing(WIN, sidebar_offset, graph, rels, func_domain, func_range):
-    WIN.fill(BACKGROUND_COLOUR)
+def draw_graphing(win, sidebar_offset, graph, rels, func_domain, func_range):
+    win.fill(BACKGROUND_COLOUR)
     graph.set_pos((sidebar_offset + 70, 50))
     y_accumulated = 0
     for slider in graph.get_sliders():
         surface = slider.create()
-        WIN.blit(surface, (sidebar_offset +
-                 graph.size[0] + 90, 50 + y_accumulated))
+        win.blit(surface, (sidebar_offset +
+                           graph.size[0] + 90, 50 + y_accumulated))
         slider.set_pos(
             (sidebar_offset + graph.size[0] + 90, 50 + y_accumulated))
         y_accumulated += surface.get_height() + 20
     x_accumulated = 0
     for i, button in enumerate(graph.get_buttons()):
         if i != 3:
-            button.create(WIN, graph.get_mode(), sidebar_offset + graph.size[0] + 100 +
+            button.create(win, graph.get_mode(), sidebar_offset + graph.size[0] + 100 +
                           x_accumulated, 50 + y_accumulated)
             if i < 2:
                 x_accumulated += button.size[0] + 15
             continue
-        button.create(WIN, graph.get_mode(), sidebar_offset + graph.size[0] + 100 +
+        button.create(win, graph.get_mode(), sidebar_offset + graph.size[0] + 100 +
                       x_accumulated + 5, 50 + y_accumulated + 80)
     y_accumulated += 70
     x_accumulated = 0
     for i, textbox in enumerate(graph.get_d_r_boxes()):
-        textbox.create(WIN, sidebar_offset +
+        textbox.create(win, sidebar_offset +
                        graph.size[0] + 100 + x_accumulated, 50 + y_accumulated)
         if i == 1:
             y_accumulated += 60
@@ -184,34 +184,33 @@ def draw_graphing(WIN, sidebar_offset, graph, rels, func_domain, func_range):
         x_accumulated += textbox.size[0] + 15
     y_accumulated += 70
     for textbox in graph.get_textboxes():
-        textbox.create(WIN, sidebar_offset +
+        textbox.create(win, sidebar_offset +
                        graph.size[0] + 100, 50 + y_accumulated)
         y_accumulated += textbox.size[1] + 40
-    WIN.blit(graph.create(func_domain, func_range, list(rels.values()), (sidebar_offset + 70, 50), scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
+    win.blit(graph.create(func_domain, func_range, list(rels.values()), (sidebar_offset + 70, 50),
+                          scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
              (sidebar_offset + 70, 50))
 
 
 def main():
-
-
     # Create an opaque window surface with defined width and height, and set a title
-    WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags, 8)
-    WIN.set_alpha(None)
+    win = pygame.display.set_mode((WIDTH, HEIGHT), flags, 8)
+    win.set_alpha(None)
     pygame.display.set_caption("Insidia")
 
     # Set the icon of the window
-    ICON = pygame.image.load(os.path.join(
+    icon = pygame.image.load(os.path.join(
         CurrentPath, 'assets', 'textures', 'logo.png'))
-    pygame.display.set_icon(ICON)
+    pygame.display.set_icon(icon)
 
-    ICON_SPLASH = pygame.transform.scale(ICON, (400, 400))
+    icon_splash = pygame.transform.scale(icon, (400, 400))
 
     # Display a random loading message whilst pygame initialises
     init_text = render_text(choice(LOAD_MESSAGES), 30, font=TITLE)
-    WIN.blit(ICON_SPLASH, (WIDTH/2 - ICON_SPLASH.get_width() /
-                                     2, HEIGHT/2 - ICON_SPLASH.get_height()/2 - init_text.get_height()))
-    WIN.blit(init_text, (WIDTH/2 - init_text.get_width() /
-                                   2, HEIGHT/2 + ICON_SPLASH.get_height()/2 + 10))
+    win.blit(icon_splash, (WIDTH / 2 - icon_splash.get_width() /
+                           2, HEIGHT / 2 - icon_splash.get_height() / 2 - init_text.get_height()))
+    win.blit(init_text, (WIDTH / 2 - init_text.get_width() /
+                         2, HEIGHT / 2 + icon_splash.get_height() / 2 + 10))
     pygame.display.update()
 
     # Initialise pygame's clock and start the game loop
@@ -291,7 +290,8 @@ def main():
                                     textbox.set_validity(True)
                             except:
                                 messagebox.showerror(
-                                    "Error", f"Thats an invalid expression.\n\"{textbox.get_text()}\"\nIf you are multiplying two terms (e.g. 2sin(x)), try adding a * between them. (2*sin(x))")
+                                    "Error",
+                                    f"Thats an invalid expression.\n\"{textbox.get_text()}\"\nIf you are multiplying two terms (e.g. 2sin(x)), try adding a * between them. (2*sin(x))")
                                 textbox.set_validity(False)
                                 if textbox in rels:
                                     rels.pop(textbox)
@@ -335,7 +335,7 @@ def main():
                             current_state = state
 
         if current_state == HOME:
-            draw_home(WIN, 230 if sidebar_state == EXTENDED else 0, demo_graph)
+            draw_home(win, 230 if sidebar_state == EXTENDED else 0, demo_graph)
             buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
             clicked = demo_graph.handle_changes(buttons_pressed, clicked)
 
@@ -392,17 +392,17 @@ def main():
             else:
                 func_domain = last_domain
                 func_range = last_range
-            draw_graphing(WIN, 230 if sidebar_state ==
-                          EXTENDED else 0, calc_graph, rels, func_domain, func_range)
+            draw_graphing(win, 230 if sidebar_state ==
+                                      EXTENDED else 0, calc_graph, rels, func_domain, func_range)
             buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
             clicked = calc_graph.handle_changes(buttons_pressed, clicked)
 
         # Draw the sidebar onto the screen
         if sidebar_state == EXTENDED:
-            WIN.blit(sidebar[SIDEBAR_SURFACE], (0 - sidebar_anim_frames, 0))
+            win.blit(sidebar[SIDEBAR_SURFACE], (0 - sidebar_anim_frames, 0))
             sidebar_anim_frames -= 25 if 0 < sidebar_anim_frames else 0
         else:
-            WIN.blit(sidebar[SIDEBAR_SURFACE], (10, 10))
+            win.blit(sidebar[SIDEBAR_SURFACE], (10, 10))
 
         pygame.display.update()
 

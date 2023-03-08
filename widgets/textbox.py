@@ -37,9 +37,9 @@ class Textbox:
     active: bool
     colour: tuple
     rect: pygame.Rect
-    pos: tuple
+    pos: tuple | None
     default: str
-    last_surface: pygame.Surface
+    last_surface: pygame.Surface | None
     cursor_pos: int
     valid: bool
 

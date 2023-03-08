@@ -53,7 +53,7 @@ TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.tt
     'Oxanium-Regular.ttf', 'press-start.ttf'
 
 
-FACTORIAL = symengine.sympify(sympy.sympify("factorial(x)"))
+FACTORIAL = sympify(sympy.sympify("factorial(x)"))
 
 
 if getattr(sys, 'frozen', False):
@@ -86,7 +86,7 @@ def multisolver(expression):
         if type(sub_expr) == symengine.Pow:
             if type(sub_expr.args[1]) == symengine.Rational:
                 num, den = sub_expr.args[1].get_num_den()
-                real_root = symengine.sympify(sympy.real_root(
+                real_root = sympify(sympy.real_root(
                     sympy.Pow(sub_expr.args[0], num), den))
                 expression = expression.replace(
                     expression.args[index], real_root)
@@ -126,7 +126,7 @@ def calculate_x_y(relation, all_x, all_y):
         if type(expr) == symengine.Pow:
             if type(expr.args[1]) == symengine.Rational:
                 num, den = expr.args[1].get_num_den()
-                real_root = symengine.sympify(
+                real_root = sympify(
                     sympy.real_root(sympy.Pow(expr.args[0], num), den))
                 expr = real_root
             else:
@@ -209,10 +209,10 @@ class Graph:
     offset_x: int
     offset_y: int
     cache: dict
-    last_surface: pygame.Surface
+    last_surface: pygame.Surface | None
     viewing_surface: pygame.Surface
-    pos: tuple
-    mouse_pos: tuple
+    pos: tuple | None
+    mouse_pos: tuple | None
     clicked: bool
     sliders: list
     buttons: list
@@ -317,7 +317,7 @@ class Graph:
             self.offset_x = self.plotting_size_x/2 - self.size[0]/2
             return
         if self.offset_x + val < -(self.plotting_size_x/2 - self.size[0]/2):
-            self.offset_x = -(self.plotting_size_x/2 - self.size[0]/2)
+            self.offset_x = int(-(self.plotting_size_x/2 - self.size[0]/2))
             return
         self.offset_x += val
 
@@ -326,7 +326,7 @@ class Graph:
             self.offset_y = self.plotting_size_y/2 - self.size[1]/2
             return
         if self.offset_y + val < -(self.plotting_size_y/2 - self.size[1]/2):
-            self.offset_y = -(self.plotting_size_y/2 - self.size[1]/2)
+            self.offset_y = int(-(self.plotting_size_y/2 - self.size[1]/2))
             return
         self.offset_y += val
 
@@ -558,7 +558,6 @@ class Graph:
                                  relation, scale_x, scale_y, graph_surface, changed_d_r)
             if sketch is not None:
                 low_res.append(sketch)
-
 
         if len(low_res) > 0:
             low_res_warning(low_res)

@@ -46,6 +46,8 @@ class Button:
     hovering: bool
 
     def __init__(self, icon, size, event, mode, label) -> None:
+        self.rect = None
+        self.pos = None
         self.icon = pygame.transform.scale(pygame.image.load(
             icon).convert_alpha(), (size[0]-10, size[1]-10))
         fill(self.icon, WHITE)

@@ -40,8 +40,8 @@ class Slider:
     radius: int
     x_increment: int
     current_x: int
-    current_surface: pygame.Surface
-    pos: tuple
+    current_surface: pygame.Surface | None
+    pos: tuple | None
     clicked: bool
     tooltip: bool
 
