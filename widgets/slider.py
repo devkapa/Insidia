@@ -9,18 +9,19 @@ BLACK = (0, 0, 0)
 DARK_GREY = (100, 100, 100)
 BACKGROUND_GREY = (239, 239, 239)
 
-# Fonts
+# Font file names
 TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
     'Oxanium-Regular.ttf', 'press-start.ttf'
 
+# Change current path if Insidia is running in an executable (.exe)
 if getattr(sys, 'frozen', False):
     CurrentPath = sys._MEIPASS
 else:
     CurrentPath = ''
 
 
-# Returns a surface with text in the game font
 def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
+    """Returns a pygame surface with the passed text in the app font."""
     font = pygame.font.Font(os.path.join(
         CurrentPath, 'assets', 'fonts', font), px)
     text = font.render(text, False, color)
@@ -29,6 +30,10 @@ def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
 
 
 class Slider:
+    """
+    The textbox structure allows for a number to be selected within a certain minimum and maximum range. 
+    It is a mouse-operated, interactive and easy to use interface to quickly select and change values.
+    """
     min: int
     max: int
     default: int
@@ -42,6 +47,7 @@ class Slider:
     clicked: bool
     tooltip: bool
 
+    # Initialise the Slider as a barebones structure to be later drawn
     def __init__(self, min, max, size_x, size_y, radius, default=None, name="Slider") -> None:
         self.min = min
         self.max = max
@@ -57,15 +63,19 @@ class Slider:
         self.tooltip = False
         self.name = render_text(name, 18, color=WHITE)
 
+    # Calculate the currently selected value on the slider 
     def value(self) -> int:
         return [i for i in range(self.min, self.max + 1)][math.floor((self.current_x - self.radius) / self.x_increment)]
 
+    # Return if the slider surface has been clicked
     def get_clicked(self) -> bool:
         return self.clicked
 
+    # Set if the slider surface has been clicked
     def set_clicked(self, bool) -> None:
         self.clicked = bool
 
+    # Reset slider to the default value. If no default exists, set it to the minimum value.
     def reset(self) -> None:
         if self.default is None:
             self.current_x = self.radius
@@ -77,36 +87,40 @@ class Slider:
             except ValueError:
                 self.current_x = self.radius
 
-    def move(self, val) -> None:
-        if self.current_x + val < self.radius:
-            self.current_x = self.radius
-            return
-        if self.current_x + val > self.radius + self.size_x:
-            self.current_x = self.radius + self.size_x
-            return
-        self.current_x += val
-
+    # Cache slider's current position when it is plotted 
     def set_pos(self, pos) -> None:
         self.pos = pos
 
+    # Return the slider's last known position 
     def get_pos(self) -> tuple:
         return self.pos
 
+    # Set the text to be displayed above the slider
     def set_tooltip(self, tooltip) -> None:
         self.tooltip = tooltip
 
+    # Return the text to be displayed above the slider
     def get_tooltip(self) -> bool:
         return self.tooltip
-
+    
+    # Return a pygame Surface with the interactive slider
     def create(self) -> pygame.Surface:
+
+        # Create transparent surface
         slider_surface = pygame.Surface(
             (self.size_x + self.radius * 2 + 50, self.size_y + self.radius + 50))
         slider_surface.set_colorkey((0, 0, 0))
+
+        # Draw slider body and interactive circle
         pygame.draw.rect(slider_surface, DARK_GREY,
-                         pygame.Rect(self.radius, self.radius / 2 + 40, self.size_x, self.size_y))
+                         pygame.Rect(self.radius, self.radius / 2 + 40, self.size_x, self.size_y), border_radius=5)
         pygame.draw.circle(slider_surface, WHITE,
                            (self.current_x, self.size_y / 2 + self.radius / 2 + 40), self.radius)
+        
+        # Draw the slider label above it
         slider_surface.blit(self.name, (0, 0))
+
+        # If the tooltip must be displayed, draw it
         if self.get_tooltip():
             label = render_text(str(self.value()), 14, color=WHITE)
             label_background = (label.get_width() + 5, label.get_height() + 5)
@@ -115,5 +129,8 @@ class Slider:
                                          label_background[1]), border_radius=2)
             slider_surface.blit(
                 label, (self.current_x - label.get_width() / 2, 2.5))
+        
+        # Cache the last known surface for efficiency
         self.current_surface = slider_surface
+        
         return slider_surface
