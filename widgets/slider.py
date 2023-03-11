@@ -14,8 +14,8 @@ class Slider:
     The textbox structure allows for a number to be selected within a certain minimum and maximum range. 
     It is a mouse-operated, interactive and easy to use interface to quickly select and change values.
     """
-    min: int
-    max: int
+    minimum: int
+    maximum: int
     default: int
     size_x: int
     size_y: int
@@ -28,13 +28,13 @@ class Slider:
     tooltip: bool
 
     # Initialise the Slider as a barebones structure to be later drawn
-    def __init__(self, min, max, size_x, size_y, radius, default=None, name="Slider") -> None:
-        self.min = min
-        self.max = max
+    def __init__(self, minimum, maximum, size_x, size_y, radius, default=None, name="Slider") -> None:
+        self.minimum = minimum
+        self.maximum = maximum
         self.size_x = size_x
         self.size_y = size_y
         self.radius = radius
-        self.x_increment = self.size_x / (self.max - self.min)
+        self.x_increment = self.size_x / (self.maximum - self.minimum)
         self.default = default
         self.reset()
         self.current_surface = None
@@ -45,15 +45,15 @@ class Slider:
 
     # Calculate the currently selected value on the slider 
     def value(self) -> int:
-        return [i for i in range(self.min, self.max + 1)][math.floor((self.current_x - self.radius) / self.x_increment)]
+        return [i for i in range(self.minimum, self.maximum + 1)][math.floor((self.current_x - self.radius) / self.x_increment)]
 
     # Return if the slider surface has been clicked
     def get_clicked(self) -> bool:
         return self.clicked
 
     # Set if the slider surface has been clicked
-    def set_clicked(self, bool) -> None:
-        self.clicked = bool
+    def set_clicked(self, clicked) -> None:
+        self.clicked = clicked
 
     # Reset slider to the default value. If no default exists, set it to the minimum value.
     def reset(self) -> None:
@@ -62,7 +62,7 @@ class Slider:
         else:
             try:
                 value = [i for i in range(
-                    self.min, self.max + 1)].index(self.default)
+                    self.minimum, self.maximum + 1)].index(self.default)
                 self.current_x = self.radius + (value * self.x_increment)
             except ValueError:
                 self.current_x = self.radius

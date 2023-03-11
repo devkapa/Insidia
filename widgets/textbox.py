@@ -61,9 +61,9 @@ class Textbox:
         return self.pos
 
     # Set the textbox to allow text input
-    def set_active(self, bool) -> None:
+    def set_active(self, active) -> None:
         self.cursor_pos = len(self.value)
-        self.active = bool
+        self.active = active
 
     # Given a surface, draw on it the textbox and its value respective of the cursor
     def create(self, surface, left, top) -> None:
@@ -130,8 +130,7 @@ class Textbox:
     # If the cursor is in front of a key, delete that key
     def backspace(self) -> None:
         if len(self.value[:self.cursor_pos]) > 0:
-            self.value = self.value[:self.cursor_pos][:-
-            1] + self.value[self.cursor_pos:]
+            self.value = self.value[:self.cursor_pos][:-1] + self.value[self.cursor_pos:]
             self.cursor_pos -= 1
 
     # If the textbox is active, return the text with a vertical pole cursor
@@ -167,5 +166,5 @@ class Textbox:
             self.cursor_pos = len(self.value)
 
     # Set if the textbox is considered a valid equation
-    def set_validity(self, bool) -> None:
-        self.valid = bool
+    def set_validity(self, valid) -> None:
+        self.valid = valid

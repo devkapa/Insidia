@@ -3,7 +3,7 @@ import pygame
 import symengine
 import sympy
 from multiprocessing.pool import ThreadPool
-from symengine import Symbol, sympify
+from symengine import Symbol, sympify, SympifyError
 from commons import get_current_path, render_text
 from widgets.slider import Slider
 from widgets.button import Button
@@ -208,7 +208,7 @@ def calculate_x_y(relation, all_x, all_y):
                             {symbol_x: x_val, symbol_y: y_val})
                         if ans.is_real and -0.1 <= ans <= 0.1:
                             alternate_renders.append((x_val, y_val))
-            except:
+            except (NotImplementedError, ValueError, SympifyError, TypeError):
                 pass
 
     return lines_to_draw, alternate_renders
@@ -223,8 +223,7 @@ class Graph:
 
     # Enum values to handle built-in buttons
     PAN, TOOLTIP = 0, 1
-    PAN_EVENT, TOOLTIP_EVENT, RESET_EVENT, CLEAR_EVENT = pygame.USEREVENT + \
-                                                         1, pygame.USEREVENT + 2, pygame.USEREVENT + 3, pygame.USEREVENT + 4
+    PAN_EVENT, TOOLTIP_EVENT, RESET_EVENT, CLEAR_EVENT = pygame.USEREVENT + 1, pygame.USEREVENT + 2, pygame.USEREVENT + 3, pygame.USEREVENT + 4
 
     mode: int
     size: tuple
@@ -310,8 +309,8 @@ class Graph:
         return self.clicked
 
     # Set the clicked state of the button and the mouse position if provided.
-    def set_clicked(self, bool, mouse_pos=None) -> None:
-        self.clicked = bool
+    def set_clicked(self, clicked, mouse_pos=None) -> None:
+        self.clicked = clicked
         self.mouse_pos = mouse_pos
 
     # Cache graph's current position when it is plotted 
@@ -380,8 +379,12 @@ class Graph:
         # Get the centre of the graph
         origin = (self.plotting_size_x / 2, self.plotting_size_y / 2)
 
+        should_return = False
+
         # If the relation has already been calculated, don't waste resources recalculating it
         if (relation not in self.lines and relation not in self.alternate) or change:
+
+            should_return = True
 
             # Asynchronously calculate X and Y values to prevent pygame freezing
             async_result = self.pool.apply_async(calculate_x_y, (relation, all_x, all_y,))
@@ -391,21 +394,15 @@ class Graph:
             self.lines[relation] = lines_to_draw
             self.alternate[relation] = alternate_renders
 
-            # Given the Relation being drawn is new, return a string to send a warning message
-            if len(alternate_renders) > 0:
-                if len(self.lines[relation]) == 0 and relation in self.alternate:
-                    for point in self.alternate[relation]:
-                        pygame.draw.circle(
-                            graph_surface, relation.get_colour(),
-                            (origin[0] + (point[0] * scale_x), origin[1] - (point[1] * scale_y)), 1)
-                return str(relation.get_expression())
-
         # Draw the cached values
         if len(self.lines[relation]) == 0 and relation in self.alternate:
             for point in self.alternate[relation]:
                 pygame.draw.circle(
                     graph_surface, relation.get_colour(),
                     (origin[0] + (point[0] * scale_x), origin[1] - (point[1] * scale_y)), 1)
+            # Given the Relation being drawn is new, return a string to send a warning message
+            if should_return:
+                return str(relation.get_original())
 
         for line in self.lines[relation]:
             pygame.draw.aalines(graph_surface, relation.get_colour(), False, [(
@@ -444,29 +441,29 @@ class Graph:
             y_val = round((origin[1] - relative_y) / scale_y, 2)
 
             # If the relative values are within the graph, generate a tooltip
-            if relative_x_offset <= relative_x <= relative_x_offset + self.size[0] \
-                and relative_y_offset <= relative_y <= relative_y_offset + self.size[1]:
-                for eq in self.lines:
-                    for line in self.lines[eq]:
-                        for point in line:
-                            # Only follow the relative X if the graph is dependant on Y, otherwise vice versa.
-                            y_dependant_point = False if type(point[0]) != float else True
-                            if y_dependant_point and point[0] == x_val:
-                                y_display = round(float(point[1]), 2)
-                                tooltips.append(
-                                    [point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()),
-                                     render_text(
-                                         "X: " + str(x_val), 14, color=BLACK),
-                                     render_text("Y: " + str(y_display), 14, color=BLACK), y_dependant_point])
-                                continue
-                            if not y_dependant_point and point[1] == y_val:
-                                x_display = round(float(point[0]), 2)
-                                tooltips.append(
-                                    [point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()),
-                                     render_text(
-                                         "X: " + str(x_display), 14, color=BLACK),
-                                     render_text("Y: " + str(y_val), 14, color=BLACK), y_dependant_point])
-                                continue
+            if relative_x_offset <= relative_x <= relative_x_offset + self.size[0]:
+                if relative_y_offset <= relative_y <= relative_y_offset + self.size[1]:
+                    for eq in self.lines:
+                        for line in self.lines[eq]:
+                            for point in line:
+                                # Only follow the relative X if the graph is dependant on Y, otherwise vice versa.
+                                y_dependant_point = False if type(point[0]) != float else True
+                                if y_dependant_point and point[0] == x_val:
+                                    y_display = round(float(point[1]), 2)
+                                    tooltips.append(
+                                        [point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()),
+                                         render_text(
+                                             "X: " + str(x_val), 14, color=BLACK),
+                                         render_text("Y: " + str(y_display), 14, color=BLACK), y_dependant_point])
+                                    continue
+                                if not y_dependant_point and point[1] == y_val:
+                                    x_display = round(float(point[0]), 2)
+                                    tooltips.append(
+                                        [point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()),
+                                         render_text(
+                                             "X: " + str(x_display), 14, color=BLACK),
+                                         render_text("Y: " + str(y_val), 14, color=BLACK), y_dependant_point])
+                                    continue
 
         # Use cached graph if it hasn't changed. Otherwise, recalculate necessary changes
         if self.cache != {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y,

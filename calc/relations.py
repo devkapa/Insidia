@@ -1,13 +1,18 @@
-from symengine import Symbol, sympify, Eq
+from symengine import Symbol, sympify, Eq, SympifyError
 from sympy import solveset, EmptySet
 from sympy import sympify as sympyify
+
+
+class RelationError(Exception):
+    """Raised if there is an error in creating a Relation."""
+    pass
 
 
 class Relation:
     """
     The relation structure allows for the digital symbolic representation of a mathematical expression.
     It can convert strings to the python symbolic mathematics engine, sympy. This is where the bulk of solving occurs!
-    Solutions for X and Y are calculated using symengine, a wrapper of a C++ library that is a drop-in replacement of sympy.
+    Solutions for X and Y are calculated using symengine, a wrapper of a drop-in C++ replacement for sympy.
     """
     equation: str
     colour: tuple
@@ -31,13 +36,13 @@ class Relation:
         try:
             self.y_values = sympify(solveset(self.get_expression(), y))
             self.x_values = EmptySet
-        except:
+        except (NotImplementedError, ValueError, SympifyError, TypeError):
             self.y_values = EmptySet
 
         if len(self.y_values.args) == 0:
             try:
                 self.x_values = sympify(solveset(self.get_expression(), x))
-            except:
+            except (NotImplementedError, ValueError, SympifyError, TypeError):
                 self.x_values = EmptySet
 
     # Get the unaltered original string expression passed during initialisation
@@ -48,7 +53,7 @@ class Relation:
     def equality(self, expression: str):
         expression = expression.split("=")
         if len(expression) not in [1, 2]:
-            raise Exception
+            raise RelationError
         if len(expression) == 1:
             self.lhs = "y"
             self.rhs = expression[0]

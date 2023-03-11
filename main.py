@@ -7,7 +7,7 @@ from pygame.locals import *
 
 from commons import render_text, get_current_path_main, TITLE
 from calc.graphing import Graph
-from calc.relations import Relation
+from calc.relations import Relation, RelationError
 
 from widgets.textbox import Textbox
 from tkinter import messagebox
@@ -142,9 +142,8 @@ def draw_home(win, sidebar_offset, graph, home_rels):
         button.create(win, graph.get_mode(), sidebar_offset + 710 +
                       x_accumulated, 190 + y_accumulated)
         x_accumulated += button.size[0] + 15
-    subtitle = render_text(
-        "Math no longer has to be criminal. Visualise stunning, interactive graphs. Get started by exploring the sidebar.",
-        15)
+    subtitle = render_text("Math no longer has to be criminal." +
+                           "Visualise stunning, interactive graphs. Get started by exploring the sidebar.", 15)
     win.blit(subtitle, (sidebar_offset + 80, 530))
 
 
@@ -339,10 +338,11 @@ def main():
                                 rels.pop(textbox)
                             textbox.set_validity(True)
                             textbox.message_shown = False
-                    except:
+                    except RelationError:
                         if not textbox.message_shown:
-                            messagebox.showerror("Error",
-                                f"{textbox.title} has an invalid expression.\nIf multiplying two terms, e.g. 2sin(x), try adding a *, e.g. 2*sin(x)")
+                            messagebox.showerror("Error", f"{textbox.title} has an invalid expression." +
+                                                 "\nIf multiplying two terms, e.g. 2sin(x), " +
+                                                          "try adding a *, e.g. 2*sin(x)")
                             textbox.message_shown = True
                         textbox.set_validity(False)
                         if textbox in rels:
@@ -383,8 +383,8 @@ def main():
                 func_range = last_range
 
             # Draw the window
-            draw_graphing(win, 230 if sidebar_state ==
-                                      EXTENDED else 0, calc_graph, rels, func_domain, func_range)
+            draw_graphing(win, 230 if sidebar_state == EXTENDED else
+                          0, calc_graph, rels, func_domain, func_range)
             buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
             clicked = calc_graph.handle_changes(buttons_pressed, clicked)
 
