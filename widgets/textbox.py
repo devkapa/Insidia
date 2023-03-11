@@ -106,7 +106,8 @@ class Textbox:
                     new_text, (5, (title.get_height() + 5 + self.size[1] / 2) - new_text.get_height()/2))
             else:
                 textbox_surface.blit(
-                    text, (-(text.get_width() - self.size[0]), (title.get_height() + 5 + self.size[1] / 2) - text.get_height()/2))
+                    text, (-(text.get_width() - self.size[0]),
+                            (title.get_height() + 5 + self.size[1] / 2) - text.get_height()/2))
         else:
             if self.value == "" and not self.active:
                 placeholder_text = render_text("Type an expression...", self.px, color=GREY)

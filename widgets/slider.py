@@ -31,6 +31,7 @@ class Slider:
     def __init__(self, minimum, maximum, size_x, size_y, radius, default=None, name="Slider") -> None:
         self.minimum = minimum
         self.maximum = maximum
+        self.range_of_values = [i for i in range(self.minimum, self.maximum + 1)]
         self.size_x = size_x
         self.size_y = size_y
         self.radius = radius
@@ -45,7 +46,7 @@ class Slider:
 
     # Calculate the currently selected value on the slider 
     def value(self) -> int:
-        return [i for i in range(self.minimum, self.maximum + 1)][math.floor((self.current_x - self.radius) / self.x_increment)]
+        return self.range_of_values[math.floor((self.current_x - self.radius) / self.x_increment)]
 
     # Return if the slider surface has been clicked
     def get_clicked(self) -> bool:

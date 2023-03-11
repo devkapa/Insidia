@@ -52,6 +52,16 @@ FACTORIAL = sympify(sympy.sympify("factorial(x)"))
 CurrentPath = get_current_path()
 
 
+def calculate_plotting_size(func_domain, scale_x, size):
+    if len(range(0, func_domain[1])) > len(range(func_domain[0], 0)):
+        plotting_size_x = (len(range(0, func_domain[1])) + 1) * 2 * scale_x
+    else:
+        plotting_size_x = (len(range(func_domain[0], 0)) + 1) * 2 * scale_x
+        if plotting_size_x < size[0]:
+            plotting_size_x = size[0]
+    return plotting_size_x
+
+
 def in_viewport(coordinate, viewport, viewport_max):
     """Returns whether the given coordinate is within the range of the viewport"""
     return viewport[0] <= coordinate[0] <= viewport_max[0] and viewport[1] <= coordinate[1] <= viewport_max[1]
@@ -223,7 +233,10 @@ class Graph:
 
     # Enum values to handle built-in buttons
     PAN, TOOLTIP = 0, 1
-    PAN_EVENT, TOOLTIP_EVENT, RESET_EVENT, CLEAR_EVENT = pygame.USEREVENT + 1, pygame.USEREVENT + 2, pygame.USEREVENT + 3, pygame.USEREVENT + 4
+    PAN_EVENT = pygame.USEREVENT + 1
+    TOOLTIP_EVENT = pygame.USEREVENT + 2
+    RESET_EVENT = pygame.USEREVENT + 3
+    CLEAR_EVENT = pygame.USEREVENT + 4
 
     mode: int
     size: tuple
@@ -468,18 +481,8 @@ class Graph:
         # Use cached graph if it hasn't changed. Otherwise, recalculate necessary changes
         if self.cache != {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y,
                           'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}:
-            if len(range(0, func_domain[1])) > len(range(func_domain[0], 0)):
-                plotting_size_x = (len(range(0, func_domain[1])) + 1) * 2 * scale_x
-            else:
-                plotting_size_x = (len(range(func_domain[0], 0)) + 1) * 2 * scale_x
-            if plotting_size_x < self.size[0]:
-                plotting_size_x = self.size[0]
-            if len(range(0, func_range[1])) > len(range(func_range[0], 0)):
-                plotting_size_y = (len(range(0, func_range[1])) + 1) * 2 * scale_y
-            else:
-                plotting_size_y = (len(range(func_range[0], 0)) + 1) * 2 * scale_y
-            if plotting_size_y < self.size[1]:
-                plotting_size_y = self.size[1]
+            plotting_size_x = calculate_plotting_size(func_domain, scale_x, self.size)
+            plotting_size_y = calculate_plotting_size(func_range, scale_y, self.size)
             self.plotting_size_x = plotting_size_x
             self.plotting_size_y = plotting_size_y
         else:
