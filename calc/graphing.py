@@ -58,8 +58,8 @@ def calculate_plotting_size(func_domain, scale_x, size):
         plotting_size_x = (len(range(0, func_domain[1])) + 1) * 2 * scale_x
     else:
         plotting_size_x = (len(range(func_domain[0], 0)) + 1) * 2 * scale_x
-        if plotting_size_x < size[0]:
-            plotting_size_x = size[0]
+    if plotting_size_x < size:
+        plotting_size_x = size
     return plotting_size_x
 
 
@@ -118,6 +118,7 @@ def calculate(symbol, expressions, all_x, all_y, y):
     """To be used internally in the calculate_x_y function, minimising repetition of code"""
 
     lines_to_draw = []
+    out_of_range = False
 
     # Iterate through all the functions for Y
     for expr in expressions.args:
@@ -168,6 +169,7 @@ def calculate(symbol, expressions, all_x, all_y, y):
 
             # Discard Y if it is not in the graph's range
             if y_val < all_y[0] or y_val > all_y[-1]:
+                out_of_range = True
                 if len(points) > 1:
                     lines_to_draw.append(points)
                 points = []
@@ -180,7 +182,7 @@ def calculate(symbol, expressions, all_x, all_y, y):
         if len(points) > 1:
             lines_to_draw.append(points)
 
-    return lines_to_draw
+    return lines_to_draw, out_of_range
 
 
 def calculate_x_y(relation, all_x, all_y):
@@ -194,17 +196,16 @@ def calculate_x_y(relation, all_x, all_y):
     symbol_x = Symbol('x')
     symbol_y = Symbol('y')
 
-    lines_to_draw = calculate(symbol_x, y_exprs, all_x, all_y, True)
+    lines_to_draw, out_of_range = calculate(symbol_x, y_exprs, all_x, all_y, True)
 
     # Get lines for when there are no solutions for Y (e.g. x=5)
     if len(y_exprs.args) == 0:
-        for line in calculate(symbol_y, x_exprs, all_y, all_x, False):
-            lines_to_draw.append(line)
+        lines_to_draw, out_of_range = calculate(symbol_y, x_exprs, all_y, all_x, False)
 
     alternate_renders = []
 
     # Iterately solve for g(x) = 0 if no solutions were possible through real function notation
-    if len(lines_to_draw) == 0:
+    if len(lines_to_draw) == 0 and not out_of_range:
 
         # Only calculate if left-hand-side is different (has a relation) to right side
         if relation.lhs != relation.rhs:
@@ -414,7 +415,7 @@ class Graph:
             self.alternate[relation] = alternate_renders
 
         # Draw the cached values
-        if len(self.lines[relation]) == 0 and relation in self.alternate:
+        if len(self.lines[relation]) == 0 and relation in self.alternate and len(self.alternate[relation]) > 0:
             for point in self.alternate[relation]:
                 pygame.draw.circle(
                     graph_surface, relation.get_colour(),
@@ -481,8 +482,8 @@ class Graph:
         # Use cached graph if it hasn't changed. Otherwise, recalculate necessary changes
         if self.cache != {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y,
                           'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}:
-            plotting_size_x = calculate_plotting_size(func_domain, scale_x, self.size)
-            plotting_size_y = calculate_plotting_size(func_range, scale_y, self.size)
+            plotting_size_x = calculate_plotting_size(func_domain, scale_x, self.size[0])
+            plotting_size_y = calculate_plotting_size(func_range, scale_y, self.size[1])
             self.plotting_size_x = plotting_size_x
             self.plotting_size_y = plotting_size_y
         else:
