@@ -2,6 +2,7 @@ import os
 import pygame
 import symengine
 import sympy
+import math
 from multiprocessing.pool import ThreadPool
 from symengine import Symbol, sympify, SympifyError
 from commons import get_current_path, render_text
@@ -150,6 +151,11 @@ def calculate(symbol, expressions, all_x, all_y, y):
             # Attempt to numerically evaluate Y
             try:
                 y_val = symengine.Float(y_val)
+                if math.isnan(float(y_val)):
+                    if len(points) > 1:
+                        lines_to_draw.append(points)
+                    points = []
+                    continue
             except RuntimeError:
                 pass
 
@@ -460,22 +466,16 @@ class Graph:
                         for line in self.lines[eq]:
                             for point in line:
                                 # Only follow the relative X if the graph is dependant on Y, otherwise vice versa.
-                                y_dependant_point = False if type(point[0]) != float else True
-                                if y_dependant_point and point[0] == x_val:
-                                    y_display = round(float(point[1]), 2)
+                                y_dependant = False if type(point[0]) != float else True
+                                x_display = round(float(point[0]), 2)
+                                y_display = round(float(point[1]), 2)
+                                if (y_dependant and point[0] == x_val) or (not y_dependant and point[1] == y_val):
                                     tooltips.append(
-                                        [point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()),
-                                         render_text(
-                                             "X: " + str(x_val), 14, color=BLACK),
-                                         render_text("Y: " + str(y_display), 14, color=BLACK), y_dependant_point])
-                                    continue
-                                if not y_dependant_point and point[1] == y_val:
-                                    x_display = round(float(point[0]), 2)
-                                    tooltips.append(
-                                        [point[0], point[1], render_text("Line: --------", 14, color=eq.get_colour()),
-                                         render_text(
-                                             "X: " + str(x_display), 14, color=BLACK),
-                                         render_text("Y: " + str(y_val), 14, color=BLACK), y_dependant_point])
+                                        [float(point[0]), float(point[1]),
+                                         render_text("Line: --------", 14, color=eq.get_colour()),
+                                         render_text("X: " + str(x_display), 14, color=BLACK),
+                                         render_text("Y: " + str(y_display), 14, color=BLACK), y_dependant
+                                         ])
                                     continue
 
         # Use cached graph if it hasn't changed. Otherwise, recalculate necessary changes
@@ -494,8 +494,7 @@ class Graph:
             x_accumulated = 0
             y_accumulated = 0
             for tooltip in tooltips:
-                point_coordinate = (
-                    origin[0] + int(tooltip[0] * scale_x), origin[1] - int(tooltip[1] * scale_y))
+                point_coordinate = (int(origin[0] + (tooltip[0] * scale_x)), int(origin[1] - (tooltip[1] * scale_y)))
                 pygame.draw.circle(surf, BLACK, point_coordinate, 2)
                 rect = pygame.Rect(
                     point_coordinate[0] + 10 + x_accumulated, point_coordinate[1] + 10 + y_accumulated,

@@ -1,6 +1,7 @@
 from symengine import Symbol, sympify, Eq, SympifyError
-from sympy import solveset, EmptySet
+from sympy import solveset, EmptySet, E
 from sympy import sympify as sympyify
+from sympy import SympifyError as SympyifyError
 
 
 class RelationError(Exception):
@@ -14,7 +15,7 @@ class Relation:
     It can convert strings to the python symbolic mathematics engine, sympy. This is where the bulk of solving occurs!
     Solutions for X and Y are calculated using symengine, a wrapper of a drop-in C++ replacement for sympy.
     """
-    equation: str
+    equation: Eq
     colour: tuple
     x_values: object
     y_values: object
@@ -60,7 +61,11 @@ class Relation:
         else:
             self.lhs = expression[0]
             self.rhs = expression[1]
-        self.equation = Eq(sympyify(self.lhs), sympyify(self.rhs))
+        sympy_locals = {"e": E, "Y": Symbol('y'), "X": Symbol('x')}
+        try:
+            self.equation = Eq(sympyify(self.lhs, locals=sympy_locals), sympyify(self.rhs, locals=sympy_locals))
+        except (NotImplementedError, ValueError, SympyifyError, TypeError):
+            raise RelationError
 
     # Return the digital symbolic expression 
     def get_expression(self) -> object:
