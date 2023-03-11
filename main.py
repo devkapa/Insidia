@@ -5,6 +5,7 @@ import pygame
 from random import choice
 from pygame.locals import *
 
+from commons import render_text, get_current_path_main, TITLE
 from calc.graphing import Graph
 from calc.relations import Relation
 
@@ -22,7 +23,7 @@ pygame.font.init()
 pygame.display.init()
 
 # RGB colour constants
-WHITE = (255, 255, 255)
+
 YELLOW = (253, 248, 140)
 AQUA = (0, 255, 255)
 PINK = (255, 225, 225)
@@ -40,24 +41,7 @@ WIDTH, HEIGHT = 1200, 800
 SIDEBAR_WIDTH, SIDEBAR_HEIGHT = 250, HEIGHT
 SIDEBAR_PADDING = 10
 
-# Change current path if Insidia is running in an executable (.exe)
-if getattr(sys, 'frozen', False):
-    CurrentPath = sys._MEIPASS
-else:
-    CurrentPath = os.path.dirname(__file__)
-
-# Font file names
-TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
-    'Oxanium-Regular.ttf', 'press-start.ttf'
-
-
-def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
-    """Returns a pygame surface with the passed text in the app font."""
-    font = pygame.font.Font(os.path.join(
-        CurrentPath, 'assets', 'fonts', font), px)
-    text = font.render(text, True, color)
-    text.set_alpha(alpha) if alpha is not None else None
-    return text
+CurrentPath = get_current_path_main()
 
 
 # Loading screen messages
@@ -288,6 +272,7 @@ def main():
             if event.type == Graph.CLEAR_EVENT:
                 for textbox in calc_graph.get_textboxes():
                     textbox.reset()
+                    textbox.set_validity(True)
                 for textbox in calc_graph.get_d_r_boxes():
                     textbox.value = textbox.default
                 calc_graph.reset()
@@ -337,7 +322,7 @@ def main():
         if current_state == GRAPHING:
             # If an equation input is no longer active, convert and queue it to be graphed
             for textbox in calc_graph.get_textboxes():
-                if not textbox.active and textbox.valid:
+                if not textbox.active:
                     try:
                         if textbox.get_text() != "":
                             if textbox not in rels:
@@ -348,13 +333,17 @@ def main():
                                     rels[textbox] = Relation(
                                         textbox.get_text(), textbox.get_colour())
                             textbox.set_validity(True)
+                            textbox.message_shown = False
                         else:
                             if textbox in rels:
                                 rels.pop(textbox)
                             textbox.set_validity(True)
+                            textbox.message_shown = False
                     except:
-                        messagebox.showerror("Error",
-                            f"{textbox.title} has an invalid expression.\nIf multiplying two terms, e.g. 2sin(x), try adding a *, e.g. 2*sin(x)")
+                        if not textbox.message_shown:
+                            messagebox.showerror("Error",
+                                f"{textbox.title} has an invalid expression.\nIf multiplying two terms, e.g. 2sin(x), try adding a *, e.g. 2*sin(x)")
+                            textbox.message_shown = True
                         textbox.set_validity(False)
                         if textbox in rels:
                             rels.pop(textbox)

@@ -1,32 +1,13 @@
 import pygame
-import os
-import sys
+from commons import render_text
 
 # RGB colour constants
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 LIGHT_GREY = (200, 200, 200)
+GREY = (128, 128, 128)
 BACKGROUND_COLOUR = (14, 17, 23)
 RED = (220, 0, 0)
-
-# Font file names
-TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
-    'Oxanium-Regular.ttf', 'press-start.ttf'
-
-# Change current path if Insidia is running in an executable (.exe)
-if getattr(sys, 'frozen', False):
-    CurrentPath = sys._MEIPASS
-else:
-    CurrentPath = ''
-
-
-def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
-    """Returns a pygame surface with the passed text in the app font."""
-    font = pygame.font.Font(os.path.join(
-        CurrentPath, 'assets', 'fonts', font), px)
-    text = font.render(text, False, color)
-    text.set_alpha(alpha) if alpha is not None else None
-    return text
 
 
 class Textbox:
@@ -45,6 +26,7 @@ class Textbox:
     last_surface: pygame.Surface | None
     cursor_pos: int
     valid: bool
+    message_shown: bool
 
     # Allowed keys that may be typed into the textbox
     WHITELIST = [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7,
@@ -72,6 +54,7 @@ class Textbox:
         self.last_surface = None
         self.cursor_pos = 0
         self.valid = True
+        self.message_shown = False
 
     # Get the textbox's last known position 
     def get_pos(self) -> tuple:
@@ -120,13 +103,18 @@ class Textbox:
                     [text_with_cursor[0][-10:], text_with_cursor[1], text_with_cursor[2]])
                 new_text = render_text(new_text, self.px, color=BLACK)
                 textbox_surface.blit(
-                    new_text, (5, new_text.get_height() + self.size[1] / 2))
+                    new_text, (5, (title.get_height() + 5 + self.size[1] / 2) - new_text.get_height()/2))
             else:
                 textbox_surface.blit(
-                    text, (-(text.get_width() - self.size[0]), text.get_height() + self.size[1] / 2))
+                    text, (-(text.get_width() - self.size[0]), (title.get_height() + 5 + self.size[1] / 2) - text.get_height()/2))
         else:
-            textbox_surface.blit(
-                text, (5, text.get_height() + self.size[1] / 2))
+            if self.value == "" and not self.active:
+                placeholder_text = render_text("Type an expression...", self.px, color=GREY)
+                textbox_surface.blit(
+                    placeholder_text, (5, (title.get_height() + 5 + self.size[1] / 2) - text.get_height()/2))
+            else:
+                textbox_surface.blit(
+                    text, (5, (title.get_height() + 5 + self.size[1] / 2) - text.get_height()/2))
             
         # Cache the last known surface for efficiency
         self.last_surface = textbox_surface

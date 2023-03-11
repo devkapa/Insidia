@@ -1,10 +1,10 @@
 import os
-import sys
 import pygame
 import symengine
 import sympy
 from multiprocessing.pool import ThreadPool
 from symengine import Symbol, sympify
+from commons import get_current_path, render_text
 from widgets.slider import Slider
 from widgets.button import Button
 from widgets.textbox import Textbox
@@ -46,27 +46,10 @@ LAVENDER = (150, 123, 182)
 COLOURS = [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, CYAN, MAGENTA, GRAY, BROWN, TURQUOISE, GOLD, INDIGO,
            SALMON, SEA_GREEN, SLATE_BLUE, OLIVE_GREEN, LIME_GREEN, SKY_BLUE, PINK, BEIGE, TAN, CORAL, LAVENDER]
 
-# Font file names
-TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
-    'Oxanium-Regular.ttf', 'press-start.ttf'
-
 # Predefined factorial object for error checking
 FACTORIAL = sympify(sympy.sympify("factorial(x)"))
 
-# Change current path if Insidia is running in an executable (.exe)
-if getattr(sys, 'frozen', False):
-    CurrentPath = sys._MEIPASS
-else:
-    CurrentPath = ''
-
-
-def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
-    """Returns a pygame surface with the passed text in the app font."""
-    font = pygame.font.Font(os.path.join(
-        CurrentPath, 'assets', 'fonts', font), px)
-    text = font.render(text, False, color)
-    text.set_alpha(alpha) if alpha is not None else None
-    return text
+CurrentPath = get_current_path()
 
 
 def in_viewport(coordinate, viewport, viewport_max):
@@ -120,21 +103,13 @@ def factorial_checker(expression):
             return False
 
 
-def calculate_x_y(relation, all_x, all_y):
-    """
-    Create lists of all points to be drawn on a graph. If the graph cannot be solved by symengine's algorithms,
-    or if the solution requires complex numbers, then use an alternate solving method which is less accurate
-    and must render at a lower resolution (every 0.1 x instead of 0.01 x).
-    """
-    x_exprs, y_exprs = relation.f()
-
-    symbol_x = Symbol('x')
-    symbol_y = Symbol('y')
+def calculate(symbol, expressions, all_x, all_y, y):
+    """To be used internally in the calculate_x_y function, minimising repetition of code"""
 
     lines_to_draw = []
 
-    # Iterate through all the functions for Y.
-    for expr in y_exprs.args:
+    # Iterate through all the functions for Y
+    for expr in expressions.args:
 
         # Recursively resolve if necessary
         if type(expr) == symengine.Pow:
@@ -160,7 +135,7 @@ def calculate_x_y(relation, all_x, all_y):
                     continue
 
             # Substitute current X into current function of Y
-            y_val = expr.xreplace({symbol_x: x_val})
+            y_val = expr.xreplace({symbol: x_val})
 
             # Attempt to numerically evaluate Y
             try:
@@ -183,69 +158,32 @@ def calculate_x_y(relation, all_x, all_y):
                 continue
 
             # Add Y to the current line
-            points.append((x_val, y_val))
+            points.append((x_val, y_val) if y else (y_val, x_val))
 
         # Add leftover lines
         if len(points) > 1:
             lines_to_draw.append(points)
 
+    return lines_to_draw
+
+
+def calculate_x_y(relation, all_x, all_y):
+    """
+    Create lists of all points to be drawn on a graph. If the graph cannot be solved by symengine's algorithms,
+    or if the solution requires complex numbers, then use an alternate solving method which is less accurate
+    and must render at a lower resolution (every 0.1 x instead of 0.01 x).
+    """
+    x_exprs, y_exprs = relation.f()
+
+    symbol_x = Symbol('x')
+    symbol_y = Symbol('y')
+
+    lines_to_draw = calculate(symbol_x, y_exprs, all_x, all_y, True)
+
     # Get lines for when there are no solutions for Y (e.g. x=5)
     if len(y_exprs.args) == 0:
-
-        # Iterate through all the functions for X.
-        for expr in x_exprs.args:
-
-            # Recursively resolve if necessary
-            if type(expr) == symengine.Pow:
-                if type(expr.args[1]) == symengine.Rational:
-                    num, den = expr.args[1].get_num_den()
-                    real_root = sympify(
-                        sympy.real_root(sympy.Pow(expr.args[0], num), den))
-                    expr = real_root
-                else:
-                    expr = multisolver(expr)
-
-            points = []
-
-            for y_val in all_y:
-
-                # Disallow factorial of negative integers from being calculated (prevent pygame segmentation fault)
-                if factorial_checker(expr):
-                    if y_val < 0 and x_val % 1 == 0:
-                        if len(points) > 1:
-                            lines_to_draw.append(points)
-                        points = []
-                        continue
-
-                # Substitute current Y into current function of X
-                x_val = expr.xreplace({symbol_y: y_val})
-
-                # Attempt to numerically evaluate Y
-                try:
-                    x_val = symengine.Float(x_val)
-                except RuntimeError:
-                    pass
-
-                # Discard X if it is complex
-                if not x_val.is_real:
-                    if len(points) > 1:
-                        lines_to_draw.append(points)
-                    points = []
-                    continue
-
-                # Discard X if it is not in the graph's domain
-                if x_val < all_x[0] or x_val > all_x[-1]:
-                    if len(points) > 1:
-                        lines_to_draw.append(points)
-                    points = []
-                    continue
-
-                # Add X to the current line
-                points.append((x_val, y_val))
-
-            # Add leftover lines
-            if len(points) > 1:
-                lines_to_draw.append(points)
+        for line in calculate(symbol_y, x_exprs, all_y, all_x, False):
+            lines_to_draw.append(line)
 
     alternate_renders = []
 
@@ -438,7 +376,7 @@ class Graph:
 
     # Given a Relation and the scope of the graph, sketch the lines (if function-like), otherwise draw points
     def sketch(self, all_x, all_y, relation, scale_x, scale_y, graph_surface, change) -> str | None:
-        
+
         # Get the centre of the graph
         origin = (self.plotting_size_x / 2, self.plotting_size_y / 2)
 
@@ -485,7 +423,7 @@ class Graph:
             i / 100 for i in range(func_domain[0] * 100, (func_domain[1] * 100) + 1)]
         all_y = [
             i / 100 for i in range(func_range[0] * 100, (func_range[1] * 100) + 1)]
-        
+
         # Get the centre of the graph
         origin = (self.plotting_size_x / 2, self.plotting_size_y / 2)
 
@@ -529,7 +467,7 @@ class Graph:
                                          "X: " + str(x_display), 14, color=BLACK),
                                      render_text("Y: " + str(y_val), 14, color=BLACK), y_dependant_point])
                                 continue
-        
+
         # Use cached graph if it hasn't changed. Otherwise, recalculate necessary changes
         if self.cache != {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y,
                           'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}:
@@ -592,7 +530,7 @@ class Graph:
 
         # Recalculate the centre of the graph
         origin = (plotting_size_x / 2, plotting_size_y / 2)
-        
+
         # Define the coordinates of the surface which is currently being viewed
         viewport = (((plotting_size_x / 2) - self.offset_x) - (self.size[0] / 2),
                     ((plotting_size_y / 2) - self.offset_y) - (self.size[1] / 2))
@@ -692,7 +630,6 @@ class Graph:
                     graph_surface.blit(render_text(
                         str(num), 10, color=DARK_GREY), (coordinate[0] + 8, coordinate[1] - 5))
 
-        
         # Empty the cached points if the relations have changed or don't exist yet
         if 'relations' not in self.cache or self.cache['relations'] != relations:
             self.lines = {}
@@ -796,7 +733,7 @@ class Graph:
                             textbox.set_active(True)
                     else:
                         textbox.set_active(False)
-            
+
             # Set domain/range input active if it is clicked
             for textbox in self.d_r_boxes:
                 if textbox.last_surface is not None:
@@ -805,7 +742,7 @@ class Graph:
                             textbox.set_active(True)
                     else:
                         textbox.set_active(False)
-            
+
             # If the slider or graph is clicked, set it as the clicked object 
             for slider in self.sliders:
                 if slider == clicked or clicked is None:
@@ -816,7 +753,7 @@ class Graph:
                 if self.viewing_surface.get_rect(topleft=self.get_pos()).collidepoint(pygame.mouse.get_pos()):
                     self.set_clicked(True, pygame.mouse.get_pos())
                     clicked = self
-            
+
             # Otherwise process a button click
             if clicked is None:
                 for button in self.buttons:

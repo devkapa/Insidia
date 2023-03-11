@@ -1,31 +1,11 @@
 import pygame
-import os
-import sys
+from commons import render_text
 
 # RGB colour constants
 DARK_GREY = (100, 100, 100)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BACKGROUND_COLOUR = (14, 17, 23)
-
-# Font file names
-TITLE, SUBHEADING, REGULAR, PRESS_START = 'Oxanium-Bold.ttf', 'Oxanium-Medium.ttf', \
-    'Oxanium-Regular.ttf', 'press-start.ttf'
-
-# Change current path if Insidia is running in an executable (.exe)
-if getattr(sys, 'frozen', False):
-    CurrentPath = sys._MEIPASS
-else:
-    CurrentPath = ''
-
-
-def render_text(text, px, font=REGULAR, color=WHITE, alpha=None):
-    """Returns a pygame surface with the passed text in the app font."""
-    font = pygame.font.Font(os.path.join(
-        CurrentPath, 'assets', 'fonts', font), px)
-    text = font.render(text, False, color)
-    text.set_alpha(alpha) if alpha is not None else None
-    return text
 
 
 # Fill all pixels of the surface with color, preserve transparency.
