@@ -470,10 +470,9 @@ class Graph:
 
         # Use cached graph if it hasn't changed. Otherwise, recalculate necessary changes
         if self.cache == {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y,
-                          'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}:
+                          'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations, 'sidebar_offset': offset}:
             # Create a copy of the cached graph to draw on
-            surf = pygame.Surface(self.size)
-            surf.blit(self.last_surface, (0, 0))
+            surf = self.last_surface.copy()
 
             # Draw each tooltip and a line pointing to it
             prev_rects = []
@@ -622,8 +621,8 @@ class Graph:
             low_res_warning(low_res)
 
         # Cache the last graphed domain and range, scales, offsets and relations
-        self.cache = {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x,
-                      'scale_y': scale_y, 'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}
+        self.cache = {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y,
+                      'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations, 'sidebar_offset': offset}
 
         # Cache the last graphed surfaces
         self.last_surface = graph_surface
