@@ -531,8 +531,9 @@ class Graph:
         all_x = [i / x_resolution for i in range(func_domain[0] * x_resolution, (func_domain[1] * x_resolution) + 1)]
         all_y = [i / x_resolution for i in range(func_range[0] * x_resolution, (func_range[1] * x_resolution) + 1)]
 
-        all_vp_x = [i / x_resolution for i in range(math.floor(viewport[0]/scale_x) * x_resolution, (math.floor(viewport_max[0]/scale_x) * x_resolution) + 1)]
-        all_vp_y = [i / y_resolution for i in range(math.floor(viewport_max[1]/scale_y) * y_resolution, (math.floor(viewport[1]/scale_y) * y_resolution) + 1)]
+        all_vp_x = [i / x_resolution for i in range((round(viewport[0]/scale_x) * x_resolution), (round(viewport_max[0]/scale_x) * x_resolution) + 1)]
+        all_vp_y = [i / y_resolution for i in range(round(viewport_max[1]/scale_y) * y_resolution, (round(viewport[1]/scale_y) * y_resolution) + 1)]
+
         # Draw X axis coordinates
         for num in all_vp_x:
             # Draw multiples of 50 if the scale is very little

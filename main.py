@@ -23,7 +23,6 @@ pygame.font.init()
 pygame.display.init()
 
 # RGB colour constants
-
 YELLOW = (253, 248, 140)
 AQUA = (0, 255, 255)
 PINK = (255, 225, 225)
