@@ -219,6 +219,7 @@ def draw_save(win, sidebar_offset, save_button, save_textbox, opus_saves, opus_r
 
     # If the save menu is currently open, render accordingly
     if saving_now[0]:
+        # Draw a window in the centre of the screen with a textbox where the user can input the file name
         rect = pygame.Rect(WIDTH/2 - 400/2, HEIGHT/2 - 150/2, 400, 150)
         pygame.draw.rect(win, GRAY, rect)
         save_title = render_text("Export current graph", 20, font=SUBHEADING)
@@ -232,6 +233,7 @@ def draw_save(win, sidebar_offset, save_button, save_textbox, opus_saves, opus_r
         win.blit(cancel_text_shadow, (WIDTH/2 - 400/2 + 10, HEIGHT/2 - 170/2 + 80 + save_title.get_height() + save_textbox.size[1]))
         save_textbox.set_active(True)
     else:
+        # Otherwise, watch for button events and monitor changes in opus saves.
         save_button.on_hover()
         snapshot_button.on_hover()
         saved_graphs_title = render_text("Saved Opus Graphs", 18, font=SUBHEADING)
@@ -376,6 +378,8 @@ def main():
                             textbox.move_cursor(event.key)
                         elif event.key in Textbox.WHITELIST:
                             textbox.add_text(event.unicode)
+
+                # Handle Opus file saving
                 if saving_now[0]:
                     save_textbox.set_active(True)
                     if event.key == pygame.K_RETURN:
@@ -384,6 +388,7 @@ def main():
                             save_textbox.set_active(False)
                             save_textbox.set_validity(True)
 
+                            # If an Opus save was to be created, do as such
                             if saving_now[1] == OPUS:
                                 fake_graph = calc_graph.save(save_textbox.value)
                                 with open(os.path.join(get_opus_path(), 'opus', f'{real_value.lower()}.opus'), 'wb') as f:
@@ -393,7 +398,9 @@ def main():
                                     opus_removal_buttons[fake_graph] = removal_button
                                     load_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'load.png'), (40, 40), EMPTY_EVENT, 0, "Load", background_colour=SIDEBAR_COLOUR)
                                     opus_load_buttons[fake_graph] = load_button
+                                messagebox.showinfo("Save Opus Graph", f"Successfully saved opus graph to \"{str(os.path.join(get_opus_path(), 'opus', f'{real_value.lower()}.opus'))}\".")
 
+                            # If an image snapshot was to be created, do as such
                             if saving_now[1] == SNAPSHOT:
                                 pygame.image.save(calc_graph.last_surface, os.path.join(get_opus_path(), 'opus', f'{real_value.lower()}.png'))
                                 messagebox.showinfo("Snapshot Opus Graph", f"Successfully saved snapshot to \"{str(os.path.join(get_opus_path(), 'opus', f'{real_value.lower()}.png'))}\".")
@@ -422,12 +429,14 @@ def main():
                         calc_graph.extend(650)
                         sidebar_anim_frames = SIDEBAR_WIDTH
 
+                # Post save or snapshot events if buttons are clicked
                 if save_button.last_surface is not None:
                     save_button.on_click()
 
                 if snapshot_button.last_surface is not None:
                     snapshot_button.on_click()
 
+                # Handle correct removals of Opus saves and loads
                 removal = False
                 for save in opus_saves:
                     if opus_removal_buttons[opus_saves[save]].on_click():

@@ -248,6 +248,10 @@ def calculate_x_y(relation, all_x, all_y):
 
 
 class FakeGraph:
+    """
+    The fake graph structure is used to hold all the equations of another graph and be serialised,
+    so that later on the equations can be re-used in another instance of Insidia.
+    """
 
     def __init__(self, name, lines):
         self.name = name
