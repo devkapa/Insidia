@@ -4,7 +4,7 @@ from commons import render_text
 
 # RGB colour constants
 WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
+BLACK = (80, 80, 80)
 DARK_GREY = (100, 100, 100)
 BACKGROUND_GREY = (239, 239, 239)
 
@@ -93,8 +93,12 @@ class Slider:
         slider_surface.set_colorkey((0, 0, 0))
 
         # Draw slider body and interactive circle
-        pygame.draw.rect(slider_surface, DARK_GREY,
-                         pygame.Rect(self.radius, self.radius / 2 + 40, self.size_x, self.size_y), border_radius=5)
+        slider_shadow = pygame.Rect(self.radius + 2, self.radius / 2 + 42, self.size_x, self.size_y)
+        slider_body = pygame.Rect(self.radius, self.radius / 2 + 40, self.size_x, self.size_y)
+        pygame.draw.rect(slider_surface, WHITE, slider_shadow, border_radius=5)
+        pygame.draw.rect(slider_surface, DARK_GREY, slider_body, border_radius=5)
+        pygame.draw.circle(slider_surface, BLACK,
+                           (self.current_x + 2, self.size_y / 2 + self.radius / 2 + 42), self.radius + 1)
         pygame.draw.circle(slider_surface, WHITE,
                            (self.current_x, self.size_y / 2 + self.radius / 2 + 40), self.radius)
         

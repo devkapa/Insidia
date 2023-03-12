@@ -1,12 +1,11 @@
 import pygame
-from commons import render_text
+from commons import render_text, BACKGROUND_COLOUR
 
 # RGB colour constants
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 LIGHT_GREY = (200, 200, 200)
 GREY = (128, 128, 128)
-BACKGROUND_COLOUR = (14, 17, 23)
 RED = (220, 0, 0)
 
 
@@ -42,7 +41,7 @@ class Textbox:
     ARROWS = [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]
 
     # Initialise the Textbox as a barebones structure to be later drawn
-    def __init__(self, size, px, title, colour, default=None) -> None:
+    def __init__(self, size, px, title, colour, default=None, placeholder=None, background_colour=BACKGROUND_COLOUR) -> None:
         self.size = size
         self.px = px
         self.value = "" if default is None else default
@@ -55,6 +54,8 @@ class Textbox:
         self.cursor_pos = 0
         self.valid = True
         self.message_shown = False
+        self.placeholder = placeholder
+        self.background_colour = background_colour
 
     # Get the textbox's last known position 
     def get_pos(self) -> tuple:
@@ -72,19 +73,24 @@ class Textbox:
         self.pos = (left, top)
 
         # Render a readable title
-        title_text = self.title if self.valid else self.title + " - INVALID"
-        title = render_text(title_text, self.px,
-                            color=RED if not self.valid else self.colour)
-        title_shadow = render_text(title_text, self.px)
+        if self.active:
+            title_text = "'ENTER' key to finish!"
+            title = render_text(title_text, self.px - 2, color=self.colour)
+            title_shadow = render_text(title_text, self.px - 2)
+        else:
+            title_text = self.title if self.valid else self.title + " - INVALID"
+            title = render_text(title_text, self.px, color=RED if not self.valid else self.colour)
+            title_shadow = render_text(title_text, self.px)
 
         # Prepare the surface everything will draw on
         textbox_surface = pygame.Surface((
             self.size[0], self.size[1] + title.get_height() + 5))
-        textbox_surface.fill(BACKGROUND_COLOUR)
+        textbox_surface.fill(self.background_colour)
 
         # Draw the textbox and title onto the surface
-        textbox_surface.blit(title_shadow, (1, 1))
-        textbox_surface.blit(title, (0, 0))
+        textbox_surface.blit(title, (2, 2))
+        textbox_surface.blit(title, (1, 1))
+        textbox_surface.blit(title_shadow, (0, 0))
         self.rect = pygame.Rect(0, title.get_height() + 5,
                                 self.size[0], self.size[1])
         pygame.draw.rect(
@@ -110,7 +116,7 @@ class Textbox:
                             (title.get_height() + 5 + self.size[1] / 2) - text.get_height()/2))
         else:
             if self.value == "" and not self.active:
-                placeholder_text = render_text("Type an expression...", self.px, color=GREY)
+                placeholder_text = render_text("Type an expression..." if self.placeholder is None else self.placeholder, self.px, color=GREY)
                 textbox_surface.blit(
                     placeholder_text, (5, (title.get_height() + 5 + self.size[1] / 2) - text.get_height()/2))
             else:

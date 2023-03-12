@@ -11,7 +11,6 @@ from widgets.button import Button
 from widgets.textbox import Textbox
 from tkinter import messagebox
 from random import choice
-import time
 
 # RGB colour constants
 WHITE = (255, 255, 255)
@@ -50,6 +49,7 @@ COLOURS = [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, CYAN, MAGENTA, GRAY, BROWN,
 
 # Predefined factorial object for error checking
 FACTORIAL = sympify(sympy.sympify("factorial(x)"))
+FACTORIAL_Y = sympify(sympy.sympify("factorial(y)"))
 
 CurrentPath = get_current_path()
 
@@ -84,14 +84,14 @@ def factorial_checker(expression):
     """
     Recursively observe an expression to check for a factorial calculation.
     """
-    if expression == FACTORIAL:
+    if expression == FACTORIAL or expression == FACTORIAL_Y:
         return True
     elif type(expression) != tuple:
         found = False
         for i in expression.args:
             found = factorial_checker(i) if not found else True
         return found
-    elif FACTORIAL in expression.args:
+    elif FACTORIAL in expression.args or FACTORIAL_Y in expression.args:
         return True
     else:
         try:
@@ -247,6 +247,13 @@ def calculate_x_y(relation, all_x, all_y):
     return lines_to_draw, alternate_renders
 
 
+class FakeGraph:
+
+    def __init__(self, name, lines):
+        self.name = name
+        self.lines = lines
+
+
 class Graph:
     """
     The graph structure allows for the drawing of a cartesian plane, given a domain and range.
@@ -303,10 +310,10 @@ class Graph:
             Button(os.path.join(CurrentPath, 'assets', 'textures', 'reset.png'),
                    (55, 50), self.RESET_EVENT, -1, "Origin")]
         self.textboxes = []
-        self.d_r_boxes = [Textbox((60, 30), 18, "X-Min", WHITE, default="-10"),
-                          Textbox((60, 30), 18, "X-Max", WHITE, default="10"),
-                          Textbox((60, 30), 18, "Y-Min", WHITE, default="-10"),
-                          Textbox((60, 30), 18, "Y-Max", WHITE, default="10")]
+        self.d_r_boxes = [Textbox((60, 30), 18, "X-Min", DARK_GREY, default="-10"),
+                          Textbox((60, 30), 18, "X-Max", DARK_GREY, default="10"),
+                          Textbox((60, 30), 18, "Y-Min", DARK_GREY, default="-10"),
+                          Textbox((60, 30), 18, "Y-Max", DARK_GREY, default="10")]
         self.lines = {}
         self.alternate = {}
         self.used_colours = []
@@ -326,6 +333,11 @@ class Graph:
     # Getter for domain and range textbox objects
     def get_d_r_boxes(self) -> list:
         return self.d_r_boxes
+
+    # Save current graph state for pickling
+    def save(self, name):
+        all_exprs = [i.get_original() for i in self.lines]
+        return FakeGraph(name, all_exprs)
 
     # Generate a textbox with a random colour that hasn't been used before
     def add_textbox(self) -> None:
@@ -684,6 +696,9 @@ class Graph:
                 if textbox.last_surface is not None:
                     if textbox.last_surface.get_rect(topleft=textbox.get_pos()).collidepoint(pygame.mouse.get_pos()):
                         if clicked is None:
+                            # Play click sound for accessibility
+                            if not Button.CLICK_CHANNEL.get_busy():
+                                Button.CLICK_CHANNEL.play(Button.CLICK_SOUND)
                             textbox.set_active(True)
                     else:
                         textbox.set_active(False)
@@ -693,6 +708,9 @@ class Graph:
                 if textbox.last_surface is not None:
                     if textbox.last_surface.get_rect(topleft=textbox.get_pos()).collidepoint(pygame.mouse.get_pos()):
                         if clicked is None:
+                            # Play click sound for accessibility
+                            if not Button.CLICK_CHANNEL.get_busy():
+                                Button.CLICK_CHANNEL.play(Button.CLICK_SOUND)
                             textbox.set_active(True)
                     else:
                         textbox.set_active(False)
@@ -701,10 +719,18 @@ class Graph:
             for slider in self.sliders:
                 if slider == clicked or clicked is None:
                     if slider.current_surface.get_rect(topleft=slider.get_pos()).collidepoint(pygame.mouse.get_pos()):
+                        if not slider.clicked:
+                            # Play click sound for accessibility
+                            if not Button.CLICK_CHANNEL.get_busy():
+                                Button.CLICK_CHANNEL.play(Button.CLICK_SOUND)
                         slider.set_clicked(True)
                         clicked = slider
             if self == clicked or clicked is None:
                 if self.viewing_surface.get_rect(topleft=self.get_pos()).collidepoint(pygame.mouse.get_pos()):
+                    if not self.clicked:
+                        # Play click sound for accessibility
+                        if not Button.CLICK_CHANNEL.get_busy():
+                            Button.CLICK_CHANNEL.play(Button.CLICK_SOUND)
                     self.set_clicked(True, pygame.mouse.get_pos())
                     clicked = self
 

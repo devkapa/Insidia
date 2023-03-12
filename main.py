@@ -2,14 +2,16 @@ import os
 import sys
 
 import pygame
+import pickle
 from random import choice
 from pygame.locals import *
 
-from commons import render_text, get_current_path_main, TITLE
+from commons import render_text, coloured_text, get_opus_path, get_current_path_main, TITLE, SUBHEADING, BACKGROUND_COLOUR
 from calc.graphing import Graph
 from calc.relations import Relation, RelationError
 
 from widgets.textbox import Textbox
+from widgets.button import Button
 from tkinter import messagebox
 
 # Versioning
@@ -21,17 +23,19 @@ flags = DOUBLEBUF
 # Initialise pygame modules
 pygame.font.init()
 pygame.display.init()
+pygame.mixer.init()
 
 # RGB colour constants
+WHITE = (255, 255, 255)
 YELLOW = (253, 248, 140)
 AQUA = (0, 255, 255)
+TURQUOISE = (0, 206, 209)
 PINK = (255, 225, 225)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 GRAY = (168, 168, 168)
 BLACK = (0, 0, 0)
 DEMO_PURPLE = (168, 113, 255)
-BACKGROUND_COLOUR = (14, 17, 23)
 SIDEBAR_COLOUR = (38, 39, 48)
 SIDEBAR_HIGHLIGHT = (58, 59, 70)
 
@@ -39,6 +43,8 @@ SIDEBAR_HIGHLIGHT = (58, 59, 70)
 WIDTH, HEIGHT = 1200, 800
 SIDEBAR_WIDTH, SIDEBAR_HEIGHT = 250, HEIGHT
 SIDEBAR_PADDING = 10
+
+OPUS = pygame.USEREVENT + 5
 
 CurrentPath = get_current_path_main()
 
@@ -53,11 +59,19 @@ LOAD_MESSAGES = ["Compiling infinite digits of pi... this could take a while.",
                  "Assembling a team of mathemagicians to tackle your calculations... Abracadabra!",
                  "Initiating the mathematical singularity... brace for impact!"]
 
+HOME_BODY_MESSAGES = [coloured_text(f"||col.{AQUA}||Math no longer has to be criminal.||col.{WHITE}|| Visualise stunning, interactive graphs, like the ||col.{DEMO_PURPLE}||demo||col.{WHITE}|| one here!", 17),
+                      coloured_text(f"   (1) You're in ||col.{YELLOW}||PAN mode||col.{WHITE}||! ||col.{YELLOW}||Click and drag ||col.{WHITE}||on the graph to move around. Nice square wave, eh?", 17),
+                      coloured_text(f"   (2) Alternatively, use the ||col.{YELLOW}||button||col.{WHITE}|| labelled ||col.{YELLOW}||POINT||col.{WHITE}||, which when hovering over the ", 17),
+                      coloured_text("         graph will show you the points at which the line crosses. ", 17),
+                      coloured_text(f"   (3) If you manage to get lost, the handy ||col.{YELLOW}||ORIGIN button||col.{WHITE}|| will set you back to the centre where you begun!", 17),
+                      coloured_text(f"Discover more! Try your own equations. Head over to the ||col.{GREEN}||sidebar||col.{WHITE}|| to get started.", 17)
+                      ]
+
 # Frames per second constant
 FPS = 120
 
 # Enum values for code readability
-HOME, GRAPHING = 0, 1
+HOME, GRAPHING, SAVE = 0, 1, 2
 RETRACTED, EXTENDED = 0, 1
 SIDEBAR_SURFACE, SIDEBAR_BUTTON, SIDEBAR_PAGES = 0, 1, 2
 
@@ -72,7 +86,7 @@ def square_wave(accuracy):
     return eq
 
 
-def get_sidebar(sidebar, status):
+def get_sidebar(sidebar, status, saving_now):
     """
     Returns a tuple containing the sidebar information.
     If the sidebar is extended, it will return the sidebar surface and buttons.
@@ -88,20 +102,20 @@ def get_sidebar(sidebar, status):
         close_button = pygame.Rect(
             SIDEBAR_WIDTH - 30 - SIDEBAR_PADDING, SIDEBAR_PADDING, 30, 30)
         close_text = render_text("X", 35 if close_button.collidepoint(
-            pygame.mouse.get_pos()) else 30, font=TITLE)
+            pygame.mouse.get_pos()) and not saving_now else 30, font=TITLE)
         sidebar_surface.blit(close_text, (SIDEBAR_WIDTH -
                                           close_text.get_width() - SIDEBAR_PADDING, SIDEBAR_PADDING))
 
         # Draw each page as an interactive button on the sidebar
-        pages = ["Home", "Graphing Calculator"]
+        pages = ["Home", "Graphing Calculator", "Opus"]
         pygame.display.set_caption(f"{pages[status]} • Insidia")
         for index, page in enumerate(pages):
             page_button = pygame.Surface(
                 (SIDEBAR_WIDTH - (SIDEBAR_PADDING * 2), 30))
             page_rect = pygame.Rect(
                 (SIDEBAR_PADDING, 100 + (index * 40)), (SIDEBAR_WIDTH - (SIDEBAR_PADDING * 2), 30))
-            page_button.fill(SIDEBAR_HIGHLIGHT if status == index or page_rect.collidepoint(
-                pygame.mouse.get_pos()) else SIDEBAR_COLOUR)
+            page_button.fill(SIDEBAR_HIGHLIGHT if status == index or (page_rect.collidepoint(
+                pygame.mouse.get_pos()) and not saving_now) else SIDEBAR_COLOUR)
             page_text = render_text(page, 20)
             page_button.blit(page_text, (SIDEBAR_PADDING, 5))
             sidebar_surface.blit(
@@ -114,7 +128,7 @@ def get_sidebar(sidebar, status):
         # Return a rect with an arrow open button on the top-left corner of the screen
         open_button = pygame.Rect(SIDEBAR_PADDING, SIDEBAR_PADDING, 30, 30)
         open_text = render_text("»", 35 if open_button.collidepoint(
-            pygame.mouse.get_pos()) else 30, font=TITLE)
+            pygame.mouse.get_pos()) and not saving_now else 30, font=TITLE)
         return open_text, open_button
 
 
@@ -128,22 +142,23 @@ def draw_home(win, sidebar_offset, graph, home_rels):
     win.blit(
         graph.create((-10, 10), (-2, 2), home_rels, (sidebar_offset + 80, 190), scale_x=graph.get_sliders()[0].value(),
                      scale_y=graph.get_sliders()[1].value()),
-        (sidebar_offset + 80, 190))
-    graph.set_pos((sidebar_offset + 80, 190))
+        (sidebar_offset + 80, 155))
+    graph.set_pos((sidebar_offset + 80, 155))
     y_accumulated = 0
     for slider in graph.get_sliders():
         surface = slider.create()
-        win.blit(surface, (sidebar_offset + 700, 190 + y_accumulated))
-        slider.set_pos((sidebar_offset + 700, 190 + y_accumulated))
+        win.blit(surface, (sidebar_offset + 700, 155 + y_accumulated))
+        slider.set_pos((sidebar_offset + 700, 155 + y_accumulated))
         y_accumulated += surface.get_height() + 20
     x_accumulated = 0
     for button in graph.get_buttons():
         button.create(win, graph.get_mode(), sidebar_offset + 710 +
-                      x_accumulated, 190 + y_accumulated)
+                      x_accumulated, 155 + y_accumulated)
         x_accumulated += button.size[0] + 15
-    subtitle = render_text("Math no longer has to be criminal." +
-                           "Visualise stunning, interactive graphs. Get started by exploring the sidebar.", 15)
-    win.blit(subtitle, (sidebar_offset + 80, 530))
+    y_accumulated = 0
+    for message in HOME_BODY_MESSAGES:
+        win.blit(message, (sidebar_offset + 80, 490 + y_accumulated))
+        y_accumulated += message.get_height() + 25
 
 
 def draw_graphing(win, sidebar_offset, graph, rels, func_domain, func_range):
@@ -188,6 +203,49 @@ def draw_graphing(win, sidebar_offset, graph, rels, func_domain, func_range):
     win.blit(graph.create(func_domain, func_range, list(rels.values()), (sidebar_offset + 70, 50),
                           scale_x=graph.get_sliders()[0].value(), scale_y=graph.get_sliders()[1].value()),
              (sidebar_offset + 70, 50))
+
+
+def draw_save(win, sidebar_offset, save_button, save_textbox, opus_saves, opus_removal_buttons, opus_load_buttons, saving_now):
+    """Draw the Opus page of Insidia."""
+    win.fill(BACKGROUND_COLOUR)
+    title = render_text("Insidia: Opus", 40, font=TITLE)
+    win.blit(title, (sidebar_offset + 80, 80))
+    subtitle = render_text("Export and share your graphs with Insidia Opus. Add a new OP below.", 20, font=SUBHEADING)
+    win.blit(subtitle, (sidebar_offset + 80, 80 + title.get_height() + 20))
+    save_button.create(win, 0, sidebar_offset + 80, 80 + title.get_height() + 40 + subtitle.get_height())
+    if saving_now:
+        rect = pygame.Rect(WIDTH/2 - 400/2, HEIGHT/2 - 150/2, 400, 150)
+        pygame.draw.rect(win, GRAY, rect)
+        save_title = render_text("Export current graph", 20, font=SUBHEADING)
+        save_title_shadow = render_text("Export current graph", 20, font=SUBHEADING, color=GREEN)
+        cancel_text_shadow = render_text("Or, press Escape to cancel.", 16, color=WHITE)
+        cancel_text = render_text("Or, press Escape to cancel.", 16, color=RED)
+        win.blit(save_title_shadow, (WIDTH/2 - 400/2 + 10 + 1, HEIGHT/2 - 170/2 + 20 + 1))
+        win.blit(save_title, (WIDTH/2 - 400/2 + 10, HEIGHT/2 - 170/2 + 20))
+        save_textbox.create(win, WIDTH/2 - 400/2 + 20, HEIGHT/2 - 170/2 + 40 + save_title.get_height())
+        win.blit(cancel_text, (WIDTH/2 - 400/2 + 10 + 1, HEIGHT/2 - 170/2 + 80 + save_title.get_height() + save_textbox.size[1] + 1))
+        win.blit(cancel_text_shadow, (WIDTH/2 - 400/2 + 10, HEIGHT/2 - 170/2 + 80 + save_title.get_height() + save_textbox.size[1]))
+        save_textbox.set_active(True)
+    else:
+        save_button.on_hover()
+        saved_graphs_title = render_text("Saved Opus Graphs", 18, font=SUBHEADING)
+        win.blit(saved_graphs_title, (sidebar_offset + 80, 80 + title.get_height() + 40 + subtitle.get_height() + save_button.size[1] + 30))
+        y_accumulated = saved_graphs_title.get_height() + 30
+        for save in opus_saves:
+            text = render_text(opus_saves[save].name, 24)
+            text_shadow = render_text(opus_saves[save].name, 24, color=TURQUOISE)
+            coords = (sidebar_offset + 80, 80 + title.get_height() + 40 + subtitle.get_height() + save_button.size[1] + 30 + y_accumulated)
+            save_rect = pygame.Rect(coords[0], coords[1], 600, text.get_height() + 30)
+            pygame.draw.rect(win, SIDEBAR_COLOUR, save_rect, border_radius=10)
+            if opus_removal_buttons[opus_saves[save]].last_surface is not None:
+                opus_removal_buttons[opus_saves[save]].on_hover()
+            opus_removal_buttons[opus_saves[save]].create(win, 0, coords[0] + 600 - 50, coords[1] + ((text.get_height() + 30)/2) - 20)
+            if opus_load_buttons[opus_saves[save]].last_surface is not None:
+                opus_load_buttons[opus_saves[save]].on_hover()
+            opus_load_buttons[opus_saves[save]].create(win, 0, coords[0] + 600 - 100, coords[1] + ((text.get_height() + 30)/2) - 20)
+            win.blit(text_shadow, (coords[0] + 10 + 1, 1 + coords[1] + ((text.get_height() + 30)/2) - (text.get_height()/2)))
+            win.blit(text, (coords[0] + 10, coords[1] + ((text.get_height() + 30)/2) - (text.get_height()/2)))
+            y_accumulated += text.get_height() + 50
 
 
 def main():
@@ -238,13 +296,21 @@ def main():
     last_domain = (-10, 10)
     last_range = (-5, 5)
 
+    # Create and share page
+    save_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'add.png'), (150, 60), OPUS, 0, "Add Opus Plot")
+    save_textbox = Textbox((350, 30), 18, "Name your graph", BLACK, placeholder="Type a graph name...", background_colour=GRAY)
+    opus_saves = {}
+    opus_removal_buttons = {}
+    opus_load_buttons = {}
+    saving_now = False
+
     while running:
 
         # Limit the loop to run only 60 times per second
         clock.tick(FPS)
 
         # Get sidebar surface and button rects
-        sidebar = get_sidebar(sidebar_state, current_state)
+        sidebar = get_sidebar(sidebar_state, current_state, saving_now)
 
         # Iterate through pygame events
         for event in pygame.event.get():
@@ -275,6 +341,12 @@ def main():
                     textbox.value = textbox.default
                 calc_graph.reset()
 
+            if event.type == OPUS:
+                if len(calc_graph.lines) > 0:
+                    saving_now = True
+                else:
+                    messagebox.showerror("Error", "The current graph is empty.")
+
             # Check if a key was pressed whilst a textbox was selected
             if event.type == pygame.KEYDOWN:
                 for textbox in calc_graph.get_textboxes() + calc_graph.get_d_r_boxes():
@@ -287,9 +359,34 @@ def main():
                             textbox.move_cursor(event.key)
                         elif event.key in Textbox.WHITELIST:
                             textbox.add_text(event.unicode)
+                if saving_now:
+                    save_textbox.set_active(True)
+                    if event.key == pygame.K_RETURN:
+                        real_value = "".join(x for x in save_textbox.value if x.isalnum())
+                        if save_textbox.value != "" and real_value != "":
+                            save_textbox.set_active(False)
+                            save_textbox.set_validity(True)
+                            saving_now = False
+                            fake_graph = calc_graph.save(save_textbox.value)
+                            with open(os.path.join(get_opus_path(), 'opus', f'{real_value.lower()}.opus'), 'wb') as f:
+                                pickle.dump(fake_graph, f)
+                                opus_saves[f] = fake_graph
+                                removal_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'remove.png'), (40, 40), pygame.USEREVENT + 6, 0, "Del", background_colour=SIDEBAR_COLOUR)
+                                opus_removal_buttons[fake_graph] = removal_button
+                                load_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'load.png'), (40, 40), pygame.USEREVENT + 6, 0, "Load", background_colour=SIDEBAR_COLOUR)
+                                opus_load_buttons[fake_graph] = load_button
+                            save_textbox.value = ""
+                        else:
+                            save_textbox.set_validity(False)
+                    elif event.key == pygame.K_ESCAPE:
+                        saving_now = False
+                    elif event.key == pygame.K_BACKSPACE:
+                        save_textbox.backspace()
+                    elif event.key in Textbox.WHITELIST:
+                        save_textbox.add_text(event.unicode)
 
             # Check if the user clicked the mouse
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.MOUSEBUTTONDOWN and not saving_now:
 
                 # Change sidebar state if button is pressed
                 if sidebar[SIDEBAR_BUTTON].collidepoint(event.pos):
@@ -301,13 +398,72 @@ def main():
                         calc_graph.extend(650)
                         sidebar_anim_frames = SIDEBAR_WIDTH
 
+                if save_button.last_surface is not None:
+                    save_button.on_click()
+
+                removal = False
+                for save in opus_saves:
+                    if opus_removal_buttons[opus_saves[save]].on_click():
+                        delete = messagebox.askquestion('Delete Opus Graph', f'Are you sure you want to delete \"{opus_saves[save].name}\"?',
+                                                        icon='warning')
+                        if delete == 'yes':
+                            os.remove(save.name)
+                            removal = True
+                    if opus_load_buttons[opus_saves[save]].on_click():
+                        load = messagebox.askquestion('Load Opus Graph', f'Are you sure you want to load \"{opus_saves[save].name}\"?',
+                                                      icon='warning')
+                        if load == 'yes':
+
+                            for textbox in calc_graph.get_textboxes():
+                                textbox.reset()
+                                textbox.set_validity(True)
+                            for textbox in calc_graph.get_d_r_boxes():
+                                textbox.value = textbox.default
+                            calc_graph.reset()
+
+                            for line in opus_saves[save].lines:
+                                for textbox in calc_graph.get_textboxes():
+                                    if textbox.value != "":
+                                        continue
+                                    textbox.value = line
+                                    break
+
+                            current_state = GRAPHING
+                            messagebox.showinfo("Load Opus Graph", f"Successfully loaded \"{opus_saves[save].name}\".")
+
+                if removal:
+                    opus_saves = {}
+                    for file in os.listdir(os.path.join(get_opus_path(), 'opus')):
+                        if file.lower().endswith(".opus"):
+                            with open(os.path.join(get_opus_path(), 'opus', file), "rb") as input_file:
+                                loaded = pickle.load(input_file)
+                                opus_saves[input_file] = loaded
+                                removal_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'remove.png'), (40, 40), pygame.USEREVENT + 6, 0, "Del", background_colour=SIDEBAR_COLOUR)
+                                opus_removal_buttons[loaded] = removal_button
+                                load_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'load.png'), (40, 40), pygame.USEREVENT + 6, 0, "Load", background_colour=SIDEBAR_COLOUR)
+                                opus_load_buttons[loaded] = load_button
+
                 # Reload sidebar after state change
-                sidebar = get_sidebar(sidebar_state, current_state)
+                sidebar = get_sidebar(sidebar_state, current_state, saving_now)
 
                 # Change program state if sidebar page button is pressed
                 if len(sidebar) > SIDEBAR_PAGES:
-                    for state in [HOME, GRAPHING]:
+                    for state in [HOME, GRAPHING, SAVE]:
                         if sidebar[SIDEBAR_PAGES][state].collidepoint(event.pos):
+                            if state == SAVE:
+                                if os.path.isdir(os.path.join(get_opus_path(), 'opus')):
+                                    opus_saves = {}
+                                    for file in os.listdir(os.path.join(get_opus_path(), 'opus')):
+                                        if file.lower().endswith(".opus"):
+                                            with open(os.path.join(get_opus_path(), 'opus', file), "rb") as input_file:
+                                                loaded = pickle.load(input_file)
+                                                opus_saves[input_file] = loaded
+                                                removal_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'remove.png'), (40, 40), pygame.USEREVENT + 6, 0, "Del", background_colour=SIDEBAR_COLOUR)
+                                                opus_removal_buttons[loaded] = removal_button
+                                                load_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'load.png'), (40, 40), pygame.USEREVENT + 6, 0, "Load", background_colour=SIDEBAR_COLOUR)
+                                                opus_load_buttons[loaded] = load_button
+                            if not Button.CLICK_CHANNEL.get_busy():
+                                Button.CLICK_CHANNEL.play(Button.CLICK_SOUND)
                             current_state = state
 
         # Display the homepage if the program state is HOME.
@@ -315,6 +471,10 @@ def main():
             draw_home(win, 230 if sidebar_state == EXTENDED else 0, demo_graph, home_rels)
             buttons_pressed = pygame.mouse.get_pressed(num_buttons=3)
             clicked = demo_graph.handle_changes(buttons_pressed, clicked)
+
+        # Display the Insidia: Opus page if the program state is SAVE
+        if current_state == SAVE:
+            draw_save(win, 230 if sidebar_state == EXTENDED else 0, save_button, save_textbox, opus_saves, opus_removal_buttons, opus_load_buttons, saving_now)
 
         # Display the graphing calculator if the program state is HOME.
         if current_state == GRAPHING:
