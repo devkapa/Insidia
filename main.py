@@ -47,6 +47,8 @@ SIDEBAR_PADDING = 10
 OPUS = pygame.USEREVENT + 5
 EMPTY_EVENT = pygame.USEREVENT + 6
 SNAPSHOT = pygame.USEREVENT + 7
+SCROLL_UP = pygame.USEREVENT + 8
+SCROLL_DOWN = pygame.USEREVENT + 9
 
 CurrentPath = get_current_path_main()
 
@@ -207,12 +209,12 @@ def draw_graphing(win, sidebar_offset, graph, rels, func_domain, func_range):
              (sidebar_offset + 70, 50))
 
 
-def draw_save(win, sidebar_offset, save_button, save_textbox, opus_saves, opus_removal_buttons, opus_load_buttons, saving_now, snapshot_button):
+def draw_save(win, sidebar_offset, save_button, save_textbox, opus_saves, opus_removal_buttons, opus_load_buttons, saving_now, snapshot_button, scroll_list_offset, scroll_down, scroll_up):
     """Draw the Opus page of Insidia."""
     win.fill(BACKGROUND_COLOUR)
     title = render_text("Insidia: Opus", 40, font=TITLE)
     win.blit(title, (sidebar_offset + 80, 80))
-    subtitle = render_text("Export and share your graphs with Insidia Opus. Add a new OP below.", 20, font=SUBHEADING)
+    subtitle = render_text("Export your graphs with Insidia Opus. Save a graph (.opus) to use in Insidia or take a snapshot (.png).", 18, font=SUBHEADING)
     win.blit(subtitle, (sidebar_offset + 80, 80 + title.get_height() + 20))
     save_button.create(win, 0, sidebar_offset + 80, 80 + title.get_height() + 40 + subtitle.get_height())
     snapshot_button.create(win, 0, sidebar_offset + 100 + save_button.size[0], 80 + title.get_height() + 40 + subtitle.get_height())
@@ -238,22 +240,33 @@ def draw_save(win, sidebar_offset, save_button, save_textbox, opus_saves, opus_r
         snapshot_button.on_hover()
         saved_graphs_title = render_text("Saved Opus Graphs", 18, font=SUBHEADING)
         win.blit(saved_graphs_title, (sidebar_offset + 80, 80 + title.get_height() + 40 + subtitle.get_height() + save_button.size[1] + 30))
-        y_accumulated = saved_graphs_title.get_height() + 30
+        scroll_list = pygame.Surface((600, 550))
+        scroll_list.fill(BACKGROUND_COLOUR)
+        y_accumulated = 0
         for save in opus_saves:
             text = render_text(opus_saves[save].name, 24)
             text_shadow = render_text(opus_saves[save].name, 24, color=TURQUOISE)
-            coords = (sidebar_offset + 80, 80 + title.get_height() + 40 + subtitle.get_height() + save_button.size[1] + 30 + y_accumulated)
-            save_rect = pygame.Rect(coords[0], coords[1], 600, text.get_height() + 30)
-            pygame.draw.rect(win, SIDEBAR_COLOUR, save_rect, border_radius=10)
+            coords = (0, y_accumulated)
+            save_rect = pygame.Rect(coords[0], coords[1] - scroll_list_offset, 600, text.get_height() + 30)
+            pygame.draw.rect(scroll_list, SIDEBAR_COLOUR, save_rect, border_radius=10)
             if opus_removal_buttons[opus_saves[save]].last_surface is not None:
                 opus_removal_buttons[opus_saves[save]].on_hover()
-            opus_removal_buttons[opus_saves[save]].create(win, 0, coords[0] + 600 - 50, coords[1] + ((text.get_height() + 30)/2) - 20)
+            opus_removal_buttons[opus_saves[save]].create(scroll_list, 0, coords[0] + 600 - 50, coords[1] + ((text.get_height() + 30)/2) - 20 - scroll_list_offset)
+            opus_removal_buttons[opus_saves[save]].pos = (coords[0] + 600 - 50 + sidebar_offset + 80, 80 + title.get_height() + 40 + subtitle.get_height() + saved_graphs_title.get_height() + save_button.size[1] + 50 + coords[1] + ((text.get_height() + 30)/2) - 20 - scroll_list_offset)
             if opus_load_buttons[opus_saves[save]].last_surface is not None:
                 opus_load_buttons[opus_saves[save]].on_hover()
-            opus_load_buttons[opus_saves[save]].create(win, 0, coords[0] + 600 - 100, coords[1] + ((text.get_height() + 30)/2) - 20)
-            win.blit(text_shadow, (coords[0] + 10 + 1, 1 + coords[1] + ((text.get_height() + 30)/2) - (text.get_height()/2)))
-            win.blit(text, (coords[0] + 10, coords[1] + ((text.get_height() + 30)/2) - (text.get_height()/2)))
+            opus_load_buttons[opus_saves[save]].create(scroll_list, 0, coords[0] + 600 - 100, coords[1] + ((text.get_height() + 30)/2) - 20 - scroll_list_offset)
+            opus_load_buttons[opus_saves[save]].pos = (coords[0] + 600 - 100 + sidebar_offset + 80, coords[1] + ((text.get_height() + 30)/2) - 20 - scroll_list_offset + 80 + title.get_height() + 40 + subtitle.get_height() + saved_graphs_title.get_height() + save_button.size[1] + 50)
+            scroll_list.blit(text_shadow, (coords[0] + 10 + 1, 1 + coords[1] + ((text.get_height() + 30)/2) - (text.get_height()/2) - scroll_list_offset))
+            scroll_list.blit(text, (coords[0] + 10, coords[1] + ((text.get_height() + 30)/2) - (text.get_height()/2) - scroll_list_offset))
             y_accumulated += text.get_height() + 50
+        win.blit(scroll_list, (sidebar_offset + 80, 80 + title.get_height() + 40 + subtitle.get_height() + saved_graphs_title.get_height() + save_button.size[1] + 50))
+        if scroll_up.last_surface is not None:
+            scroll_up.on_hover()
+        if scroll_down.last_surface is not None:
+            scroll_down.on_hover()
+        scroll_up.create(win, 0, sidebar_offset + 100 + scroll_list.get_width(), 80 + title.get_height() + 40 + subtitle.get_height() + save_button.size[1] + 30)
+        scroll_down.create(win, 0, sidebar_offset + 100 + scroll_list.get_width(), 80 + title.get_height() + 40 + subtitle.get_height() + save_button.size[1] + 50 + scroll_down.size[1])
 
 
 def main():
@@ -312,6 +325,9 @@ def main():
     opus_removal_buttons = {}
     opus_load_buttons = {}
     saving_now = (False, None)
+    scroll_list_offset = 0
+    scroll_down = Button(os.path.join(CurrentPath, 'assets', 'textures', 'down.png'), (60, 60), SCROLL_DOWN, 0, "Down")
+    scroll_up = Button(os.path.join(CurrentPath, 'assets', 'textures', 'up.png'), (60, 60), SCROLL_UP, 0, "Up")
 
     # Create Opus directory if it does not exist
     if not os.path.isdir(os.path.join(get_opus_path(), 'opus')):
@@ -366,6 +382,17 @@ def main():
                 else:
                     messagebox.showerror("Error", "The current graph is empty. Go add some equations in the Graphing Calculator, then try again.")
 
+            if event.type == SCROLL_UP:
+                scroll_list_offset -= 30
+                if scroll_list_offset < 0:
+                    scroll_list_offset = 0
+
+            if event.type == SCROLL_DOWN:
+                scroll_list_offset += 30
+                px = (len(opus_removal_buttons)*100) - 550
+                if scroll_list_offset > px:
+                    scroll_list_offset = px
+
             # Check if a key was pressed whilst a textbox was selected
             if event.type == pygame.KEYDOWN:
                 for textbox in calc_graph.get_textboxes() + calc_graph.get_d_r_boxes():
@@ -398,6 +425,7 @@ def main():
                                     opus_removal_buttons[fake_graph] = removal_button
                                     load_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'load.png'), (40, 40), EMPTY_EVENT, 0, "Load", background_colour=SIDEBAR_COLOUR)
                                     opus_load_buttons[fake_graph] = load_button
+                                scroll_list_offset = 0
                                 messagebox.showinfo("Save Opus Graph", f"Successfully saved opus graph to \"{str(os.path.join(get_opus_path(), 'opus', f'{real_value.lower()}.opus'))}\".")
 
                             # If an image snapshot was to be created, do as such
@@ -436,6 +464,13 @@ def main():
                 if snapshot_button.last_surface is not None:
                     snapshot_button.on_click()
 
+                # Post scroll events if buttons are clicked
+                if scroll_up.last_surface is not None:
+                    scroll_up.on_click()
+
+                if scroll_down.last_surface is not None:
+                    scroll_down.on_click()
+
                 # Handle correct removals of Opus saves and loads
                 removal = False
                 for save in opus_saves:
@@ -469,6 +504,8 @@ def main():
 
                 if removal:
                     opus_saves = {}
+                    opus_load_buttons = {}
+                    opus_removal_buttons = {}
                     for file in os.listdir(os.path.join(get_opus_path(), 'opus')):
                         if file.lower().endswith(".opus"):
                             with open(os.path.join(get_opus_path(), 'opus', file), "rb") as input_file:
@@ -478,6 +515,7 @@ def main():
                                 opus_removal_buttons[loaded] = removal_button
                                 load_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'load.png'), (40, 40), EMPTY_EVENT, 0, "Load", background_colour=SIDEBAR_COLOUR)
                                 opus_load_buttons[loaded] = load_button
+                            scroll_list_offset = 0
 
                 # Reload sidebar after state change
                 sidebar = get_sidebar(sidebar_state, current_state, saving_now)
@@ -489,6 +527,8 @@ def main():
                             if state == SAVE:
                                 if os.path.isdir(os.path.join(get_opus_path(), 'opus')):
                                     opus_saves = {}
+                                    opus_load_buttons = {}
+                                    opus_removal_buttons = {}
                                     for file in os.listdir(os.path.join(get_opus_path(), 'opus')):
                                         if file.lower().endswith(".opus"):
                                             with open(os.path.join(get_opus_path(), 'opus', file), "rb") as input_file:
@@ -498,6 +538,7 @@ def main():
                                                 opus_removal_buttons[loaded] = removal_button
                                                 load_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'load.png'), (40, 40), EMPTY_EVENT, 0, "Load", background_colour=SIDEBAR_COLOUR)
                                                 opus_load_buttons[loaded] = load_button
+                                            scroll_list_offset = 0
                             if not Button.CLICK_CHANNEL.get_busy():
                                 Button.CLICK_CHANNEL.play(Button.CLICK_SOUND)
                             current_state = state
@@ -510,7 +551,7 @@ def main():
 
         # Display the Insidia: Opus page if the program state is SAVE
         if current_state == SAVE:
-            draw_save(win, 230 if sidebar_state == EXTENDED else 0, save_button, save_textbox, opus_saves, opus_removal_buttons, opus_load_buttons, saving_now, snapshot_button)
+            draw_save(win, 230 if sidebar_state == EXTENDED else 0, save_button, save_textbox, opus_saves, opus_removal_buttons, opus_load_buttons, saving_now, snapshot_button, scroll_list_offset, scroll_down, scroll_up)
 
         # Display the graphing calculator if the program state is HOME.
         if current_state == GRAPHING:
