@@ -345,7 +345,7 @@ def main():
                 if len(calc_graph.lines) > 0:
                     saving_now = True
                 else:
-                    messagebox.showerror("Error", "The current graph is empty.")
+                    messagebox.showerror("Error", "The current graph is empty. Go add some equations in the Graphing Calculator, then try again.")
 
             # Check if a key was pressed whilst a textbox was selected
             if event.type == pygame.KEYDOWN:
