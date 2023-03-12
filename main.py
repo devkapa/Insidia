@@ -296,13 +296,17 @@ def main():
     last_domain = (-10, 10)
     last_range = (-5, 5)
 
-    # Create and share page
+    # Cache to hold Insidia: Opus data
     save_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'add.png'), (150, 60), OPUS, 0, "Add Opus Plot")
     save_textbox = Textbox((350, 30), 18, "Name your graph", BLACK, placeholder="Type a graph name...", background_colour=GRAY)
     opus_saves = {}
     opus_removal_buttons = {}
     opus_load_buttons = {}
     saving_now = False
+
+    # Create Opus directory if it does not exist
+    if not os.path.isdir(os.path.join(get_opus_path(), 'opus')):
+        os.mkdir(os.path.join(get_opus_path(), 'opus'))
 
     while running:
 
