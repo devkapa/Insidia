@@ -458,7 +458,7 @@ def main():
                         calc_graph.extend(650)
                         sidebar_anim_frames = SIDEBAR_WIDTH
 
-                if state == SAVE:
+                if current_state == SAVE:
                     # Post save or snapshot events if buttons are clicked
                     if save_button.last_surface is not None:
                         save_button.on_click()
