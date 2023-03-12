@@ -13,7 +13,7 @@ from widgets.textbox import Textbox
 from tkinter import messagebox
 
 # Versioning
-version = "alpha-1.1"
+version = "alpha-2.0"
 
 # Enable double buffer for speed
 flags = DOUBLEBUF

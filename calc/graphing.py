@@ -11,6 +11,7 @@ from widgets.button import Button
 from widgets.textbox import Textbox
 from tkinter import messagebox
 from random import choice
+import time
 
 # RGB colour constants
 WHITE = (255, 255, 255)
@@ -51,21 +52,6 @@ COLOURS = [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, CYAN, MAGENTA, GRAY, BROWN,
 FACTORIAL = sympify(sympy.sympify("factorial(x)"))
 
 CurrentPath = get_current_path()
-
-
-def calculate_plotting_size(func_domain, scale_x, size):
-    if len(range(0, func_domain[1])) > len(range(func_domain[0], 0)):
-        plotting_size_x = (len(range(0, func_domain[1])) + 1) * 2 * scale_x
-    else:
-        plotting_size_x = (len(range(func_domain[0], 0)) + 1) * 2 * scale_x
-    if plotting_size_x < size:
-        plotting_size_x = size
-    return plotting_size_x
-
-
-def in_viewport(coordinate, viewport, viewport_max):
-    """Returns whether the given coordinate is within the range of the viewport"""
-    return viewport[0] <= coordinate[0] <= viewport_max[0] and viewport[1] <= coordinate[1] <= viewport_max[1]
 
 
 def low_res_warning(x):
@@ -112,6 +98,34 @@ def factorial_checker(expression):
             return factorial_checker(expression.args)
         except AttributeError:
             return False
+
+
+def resolution(func_domain, func_range):
+    size_of_domain = abs(func_domain[1]-func_domain[0])
+    size_of_range = abs(func_range[1]-func_range[0])
+
+    x_resolution = 100
+    y_resolution = 100
+
+    if size_of_domain >= 0:
+        x_resolution = 1000
+    if size_of_domain >= 10:
+        x_resolution = 100
+    if size_of_domain >= 100:
+        x_resolution = 10
+    if size_of_domain >= 1000:
+        x_resolution = 1
+
+    if size_of_range >= 0:
+        y_resolution = 1000
+    if size_of_range >= 5:
+        y_resolution = 100
+    if size_of_range >= 100:
+        y_resolution = 10
+    if size_of_range >= 1000:
+        y_resolution = 1
+
+    return x_resolution, y_resolution
 
 
 def calculate(symbol, expressions, all_x, all_y, y):
@@ -214,12 +228,14 @@ def calculate_x_y(relation, all_x, all_y):
                 # Rearrange for 0
                 ex = sympify(relation.lhs + " - " + relation.rhs)
 
+                x_resolution, y_resolution = resolution((all_x[0], all_x[-1]), (all_y[0], all_y[-1]))
+
                 # Add point if g(x) is close to zero
                 for x_val in all_x:
-                    if not (x_val * 10).is_integer():
+                    if not (x_val * (x_resolution/10)).is_integer():
                         continue
                     for y_val in all_y:
-                        if not (y_val * 10).is_integer():
+                        if not (y_val * (y_resolution/10)).is_integer():
                             continue
                         ans = ex.xreplace(
                             {symbol_x: x_val, symbol_y: y_val})
@@ -271,15 +287,14 @@ class Graph:
         self.offset_x, self.offset_y = 0, 0
         self.func_domain, self.func_range = 0, 0
         self.scale_x, self.scale_y = 0, 0
-        self.plotting_size_x, self.plotting_size_y = 0, 0
         self.cache = {'func_domain': None, 'func_range': None,
                       'scale_x': None, 'scale_y': None}
         self.last_surface = None
         self.pos = None
         self.mouse_pos = None
         self.clicked = False
-        self.sliders = [Slider(1, 200, 200, 10, 10, default=40, name="X Axis Scale"),
-                        Slider(1, 200, 200, 10, 10, default=40, name="Y Axis Scale")]
+        self.sliders = [Slider(1, 400, 200, 10, 10, default=40, name="X Axis Scale"),
+                        Slider(1, 400, 200, 10, 10, default=40, name="Y Axis Scale")]
         self.buttons = [
             Button(os.path.join(CurrentPath, 'assets', 'textures', 'pan_cursor.png'), (55, 50), self.PAN_EVENT, 0,
                    "Pan"),
@@ -333,11 +348,11 @@ class Graph:
         self.clicked = clicked
         self.mouse_pos = mouse_pos
 
-    # Cache graph's current position when it is plotted 
+    # Cache graph's current position when it is plotted
     def set_pos(self, pos) -> None:
         self.pos = pos
 
-    # Get the graph's last known position 
+    # Get the graph's last known position
     def get_pos(self) -> tuple:
         return self.pos
 
@@ -369,22 +384,10 @@ class Graph:
 
     # Offset the graph horizontally. If it exceeds the plotting area, reposition.
     def shift_x(self, val) -> None:
-        if self.offset_x + val > self.plotting_size_x / 2 - self.size[0] / 2:
-            self.offset_x = self.plotting_size_x / 2 - self.size[0] / 2
-            return
-        if self.offset_x + val < -(self.plotting_size_x / 2 - self.size[0] / 2):
-            self.offset_x = int(-(self.plotting_size_x / 2 - self.size[0] / 2))
-            return
         self.offset_x += val
 
     # Offset the graph vertically. If it exceeds the plotting area, reposition.
     def shift_y(self, val) -> None:
-        if self.offset_y + val > self.plotting_size_y / 2 - self.size[1] / 2:
-            self.offset_y = self.plotting_size_y / 2 - self.size[1] / 2
-            return
-        if self.offset_y + val < -(self.plotting_size_y / 2 - self.size[1] / 2):
-            self.offset_y = int(-(self.plotting_size_y / 2 - self.size[1] / 2))
-            return
         self.offset_y += val
 
     # Reset the slider values to defaults, and return the offset to the origin position
@@ -397,7 +400,7 @@ class Graph:
     def sketch(self, all_x, all_y, relation, scale_x, scale_y, graph_surface, change) -> str | None:
 
         # Get the centre of the graph
-        origin = (self.plotting_size_x / 2, self.plotting_size_y / 2)
+        origin = ((self.size[0]/2) + self.offset_x, (self.size[1]/2) + self.offset_y)
 
         should_return = False
 
@@ -419,30 +422,21 @@ class Graph:
             for point in self.alternate[relation]:
                 pygame.draw.circle(
                     graph_surface, relation.get_colour(),
-                    (origin[0] + (point[0] * scale_x), origin[1] - (point[1] * scale_y)), 1)
+                    ((point[0] * scale_x) + origin[0], origin[1] - (point[1] * scale_y)), 1)
             # Given the Relation being drawn is new, return a string to send a warning message
             if should_return:
                 return str(relation.get_original())
 
         for line in self.lines[relation]:
-            pygame.draw.aalines(graph_surface, relation.get_colour(), False, [(
-                origin[0] + (point[0] * scale_x), origin[1] - (point[1] * scale_y)) for point in line], 2)
+            pygame.draw.aalines(graph_surface, relation.get_colour(), False, [((point[0] * scale_x) + origin[0], origin[1] - (point[1] * scale_y)) for point in line], 2)
 
         return None
 
     # Return a pygame surface with a detailed graph, showing axis, intersects, and relations
     def create(self, func_domain, func_range, relations, offset, scale_x=25, scale_y=25) -> pygame.Surface:
 
-        master_surface = pygame.Surface(self.size)
-
-        # Get all possible values for the graphs domain and range
-        all_x = [
-            i / 100 for i in range(func_domain[0] * 100, (func_domain[1] * 100) + 1)]
-        all_y = [
-            i / 100 for i in range(func_range[0] * 100, (func_range[1] * 100) + 1)]
-
         # Get the centre of the graph
-        origin = (self.plotting_size_x / 2, self.plotting_size_y / 2)
+        origin = ((self.size[0]/2) + self.offset_x, (self.size[1]/2) + self.offset_y)
 
         # If the mouse is over a point, append a tooltip for that point
         tooltips = []
@@ -451,51 +445,42 @@ class Graph:
             # Get the mouse position relative to the graph surface, and the corresponding X/Y values
             mouse_x = pygame.mouse.get_pos()[0]
             mouse_y = pygame.mouse.get_pos()[1]
-            relative_x_offset = abs(-(self.plotting_size_x / 2) +
-                                    (self.size[0] / 2) + self.offset_x)
-            relative_y_offset = abs(-(self.plotting_size_y / 2) +
-                                    (self.size[1] / 2) + self.offset_y)
-            relative_x = mouse_x - offset[0] + relative_x_offset
-            relative_y = mouse_y - offset[1] + relative_y_offset
+            relative_x = mouse_x - self.pos[0]
+            relative_y = mouse_y - self.pos[1]
             x_val = round((relative_x - origin[0]) / scale_x, 2)
             y_val = round((origin[1] - relative_y) / scale_y, 2)
 
             # If the relative values are within the graph, generate a tooltip
-            if relative_x_offset <= relative_x <= relative_x_offset + self.size[0]:
-                if relative_y_offset <= relative_y <= relative_y_offset + self.size[1]:
-                    for eq in self.lines:
-                        for line in self.lines[eq]:
-                            for point in line:
-                                # Only follow the relative X if the graph is dependant on Y, otherwise vice versa.
-                                y_dependant = False if type(point[0]) != float else True
-                                x_display = round(float(point[0]), 2)
-                                y_display = round(float(point[1]), 2)
-                                if (y_dependant and point[0] == x_val) or (not y_dependant and point[1] == y_val):
-                                    tooltips.append(
-                                        [float(point[0]), float(point[1]),
-                                         render_text("Line: --------", 14, color=eq.get_colour()),
-                                         render_text("X: " + str(x_display), 14, color=BLACK),
-                                         render_text("Y: " + str(y_display), 14, color=BLACK), y_dependant
-                                         ])
-                                    continue
+            if 0 <= relative_x <= self.size[0] and 0 <= relative_y <= self.size[1]:
+                for eq in self.lines:
+                    for line in self.lines[eq]:
+                        for point in line:
+                            # Only follow the relative X if the graph is dependant on Y, otherwise vice versa.
+                            y_dependant = False if type(point[0]) != float else True
+                            x_display = round(float(point[0]), 2)
+                            y_display = round(float(point[1]), 2)
+                            if (y_dependant and point[0] == x_val) or (not y_dependant and point[1] == y_val):
+                                tooltips.append(
+                                    [float(point[0]), float(point[1]),
+                                     render_text("Line: --------", 14, color=eq.get_colour()),
+                                     render_text("X: " + str(x_display), 14, color=BLACK),
+                                     render_text("Y: " + str(y_display), 14, color=BLACK), y_dependant
+                                     ])
+                                continue
 
         # Use cached graph if it hasn't changed. Otherwise, recalculate necessary changes
-        if self.cache != {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y,
+        if self.cache == {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x, 'scale_y': scale_y,
                           'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}:
-            plotting_size_x = calculate_plotting_size(func_domain, scale_x, self.size[0])
-            plotting_size_y = calculate_plotting_size(func_range, scale_y, self.size[1])
-            self.plotting_size_x = plotting_size_x
-            self.plotting_size_y = plotting_size_y
-        else:
             # Create a copy of the cached graph to draw on
-            surf = self.last_surface.copy()
+            surf = pygame.Surface(self.size)
+            surf.blit(self.last_surface, (0, 0))
 
             # Draw each tooltip and a line pointing to it
             prev_rects = []
             x_accumulated = 0
             y_accumulated = 0
             for tooltip in tooltips:
-                point_coordinate = (int(origin[0] + (tooltip[0] * scale_x)), int(origin[1] - (tooltip[1] * scale_y)))
+                point_coordinate = (int((tooltip[0] * scale_x) + origin[0]), int(origin[1] - (tooltip[1] * scale_y)))
                 pygame.draw.circle(surf, BLACK, point_coordinate, 2)
                 rect = pygame.Rect(
                     point_coordinate[0] + 10 + x_accumulated, point_coordinate[1] + 10 + y_accumulated,
@@ -518,124 +503,108 @@ class Graph:
                                        15 + x_accumulated, point_coordinate[1] + 55 + y_accumulated))
                 prev_rects.append(rect)
 
-            # Draw the currently viewed portion of the graph, based on how offset from the origin it is
-            master_surface.blit(
-                surf, (-(self.plotting_size_x / 2) + (self.size[0] / 2) + self.offset_x,
-                       -(self.plotting_size_y / 2) + (self.size[1] / 2) + self.offset_y))
-
-            return master_surface
-
-        # Define the total size of the graph (including what is not being currently viewed)
-        overarching_size = (plotting_size_x, plotting_size_y)
-
-        # Recalculate the centre of the graph
-        origin = (plotting_size_x / 2, plotting_size_y / 2)
-
-        # Define the coordinates of the surface which is currently being viewed
-        viewport = (((plotting_size_x / 2) - self.offset_x) - (self.size[0] / 2),
-                    ((plotting_size_y / 2) - self.offset_y) - (self.size[1] / 2))
-
-        viewport_max = (((plotting_size_x / 2) - self.offset_x) - (self.size[0] / 2) + self.size[0],
-                        ((plotting_size_y / 2) - self.offset_y) - (self.size[1] / 2) + self.size[1])
+            return surf
 
         # Create surface and fill background
-        graph_surface = pygame.Surface(overarching_size)
+        graph_surface = pygame.Surface(self.size)
         graph_surface.fill(BACKGROUND_GREY)
 
+        origin = ((self.size[0]/2) + self.offset_x, (self.size[1]/2) + self.offset_y)
+
         # Draw X and Y axis
-        pygame.draw.line(graph_surface, BLACK, (0,
-                                                overarching_size[1] / 2),
-                         (overarching_size[0], overarching_size[1] / 2))
-        pygame.draw.line(
-            graph_surface, BLACK, (overarching_size[0] / 2, 0), (overarching_size[0] / 2, overarching_size[1]))
+        pygame.draw.line(graph_surface, BLACK, (0, (self.size[1] / 2) + self.offset_y),
+                         (self.size[0], (self.size[1] / 2) + self.offset_y))
+
+        pygame.draw.line(graph_surface, BLACK, ((self.size[0] / 2) + self.offset_x, 0), ((self.size[0] / 2) + self.offset_x, self.size[1]))
 
         # Draw origin
         pygame.draw.circle(graph_surface, BLACK, origin, 3)
         graph_surface.blit(render_text("0", 10, color=DARK_GREY),
                            (origin[0] - 10, origin[1] + 4))
 
+        # Based on the scope of values, choose an appropriate resolution to improve efficiency
+        x_resolution, y_resolution = resolution(func_domain, func_range)
+
+        viewport = (-origin[0], origin[1])
+        viewport_max = (((self.size[0] / 2) - self.offset_x), (self.offset_y - (self.size[1] / 2)))
+
+        # Get all possible values for the graphs domain and range
+        all_x = [i / x_resolution for i in range(func_domain[0] * x_resolution, (func_domain[1] * x_resolution) + 1)]
+        all_y = [i / x_resolution for i in range(func_range[0] * x_resolution, (func_range[1] * x_resolution) + 1)]
+
+        all_vp_x = [i / x_resolution for i in range(math.floor(viewport[0]/scale_x) * x_resolution, (math.floor(viewport_max[0]/scale_x) * x_resolution) + 1)]
+        all_vp_y = [i / y_resolution for i in range(math.floor(viewport_max[1]/scale_y) * y_resolution, (math.floor(viewport[1]/scale_y) * y_resolution) + 1)]
         # Draw X axis coordinates
-        for num in range(func_domain[0], func_domain[1] + 1):
+        for num in all_vp_x:
+            # Draw multiples of 50 if the scale is very little
+            if scale_x == 1 and num % 50 != 0:
+                continue
             # Draw multiples of 20 if the scale is very little
             if scale_x < 5 and num % 20 != 0:
                 continue
             # Draw multiples of 5 if the scale is moderately low
             if scale_x < 15 and num % 5 != 0:
                 continue
-            # Draw half numbers if the scale is pretty high
-            if scale_x > 75:
-                half = num - 0.5
-                if half > 0:
-                    coordinate = (origin[0] + (scale_x * half), origin[1])
-                    if in_viewport(coordinate, viewport, viewport_max):
-                        pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
-                        graph_surface.blit(render_text(
-                            str(half), 10, color=DARK_GREY), (coordinate[0] - 2, coordinate[1] + 7))
-                if half < 0:
-                    coordinate = (origin[0] - (scale_x * abs(half)), origin[1])
-                    if in_viewport(coordinate, viewport, viewport_max):
-                        pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
-                        graph_surface.blit(render_text(
-                            str(half), 10, color=DARK_GREY), (coordinate[0] - 6, coordinate[1] + 7))
+            # Draw all integers
+            if scale_x <= 75 and num % 1 != 0:
+                continue
+            # Draw half numbers
+            if scale_x <= 175 and num % 0.5 != 0:
+                continue
+            # Draw every 0.1
+            if scale_x <= 400 and num*10 % 1 != 0:
+                continue
             # Draw all numbers that can currently be seen
             if num > 0:
                 coordinate = (origin[0] + (scale_x * num), origin[1])
-                if in_viewport(coordinate, viewport, viewport_max):
-                    pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
-                    graph_surface.blit(render_text(
-                        str(num), 10, color=DARK_GREY), (coordinate[0] - 2, coordinate[1] + 7))
+                pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
+                graph_surface.blit(render_text(
+                    str(num), 10, color=DARK_GREY), (coordinate[0] - 2, coordinate[1] + 7))
             if num < 0:
                 coordinate = (origin[0] - (scale_x * abs(num)), origin[1])
-                if in_viewport(coordinate, viewport, viewport_max):
-                    pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
-                    graph_surface.blit(render_text(
-                        str(num), 10, color=DARK_GREY), (coordinate[0] - 6, coordinate[1] + 7))
+                pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
+                graph_surface.blit(render_text(
+                    str(num), 10, color=DARK_GREY), (coordinate[0] - 6, coordinate[1] + 7))
 
         # Draw Y axis coordinates
-        for num in range(func_range[0], func_range[1] + 1):
+        for num in all_vp_y:
+            # Draw multiples of 100 if the scale is very little
+            if scale_y < 2 and num % 50 != 0:
+                continue
             # Draw multiples of 20 if the scale is very little
             if scale_y < 5 and num % 20 != 0:
                 continue
             # Draw multiples of 5 if the scale is moderately low
             if scale_y < 15 and num % 5 != 0:
                 continue
-            # Draw half numbers if the scale is pretty high
-            if scale_y > 75:
-                half = num - 0.5
-                if half > 0:
-                    coordinate = (origin[0], origin[1] - (scale_y * half))
-                    if in_viewport(coordinate, viewport, viewport_max):
-                        pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
-                        text = render_text(str(half), 10, color=DARK_GREY)
-                        graph_surface.blit(
-                            text, (coordinate[0] - 12 - text.get_width(), coordinate[1] - 5))
-                if half < 0:
-                    coordinate = (origin[0], origin[1] + (scale_y * abs(half)))
-                    if in_viewport(coordinate, viewport, viewport_max):
-                        pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
-                        graph_surface.blit(render_text(
-                            str(half), 10, color=DARK_GREY), (coordinate[0] + 8, coordinate[1] - 5))
+            # Draw all integers
+            if scale_y <= 75 and num % 1 != 0:
+                continue
+            # Draw half numbers
+            if scale_y <= 175 and num % 0.5 != 0:
+                continue
+            # Draw every 0.1
+            if scale_y <= 400 and num*10 % 1 != 0:
+                continue
             # Draw all numbers that can currently be seen
             if num > 0:
                 coordinate = (origin[0], origin[1] - (scale_y * num))
-                if in_viewport(coordinate, viewport, viewport_max):
-                    pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
-                    text = render_text(str(num), 10, color=DARK_GREY)
-                    graph_surface.blit(
-                        text, (coordinate[0] - 12 - text.get_width(), coordinate[1] - 5))
+                pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
+                text = render_text(str(num), 10, color=DARK_GREY)
+                graph_surface.blit(
+                    text, (coordinate[0] - 12 - text.get_width(), coordinate[1] - 5))
             if num < 0:
                 coordinate = (origin[0], origin[1] + (scale_y * abs(num)))
-                if in_viewport(coordinate, viewport, viewport_max):
-                    pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
-                    graph_surface.blit(render_text(
-                        str(num), 10, color=DARK_GREY), (coordinate[0] + 8, coordinate[1] - 5))
+                pygame.draw.circle(graph_surface, BLACK, coordinate, 3)
+                graph_surface.blit(render_text(
+                    str(num), 10, color=DARK_GREY), (coordinate[0] + 8, coordinate[1] - 5))
 
         # Empty the cached points if the relations have changed or don't exist yet
         if 'relations' not in self.cache or self.cache['relations'] != relations:
             self.lines = {}
             self.alternate = {}
 
-        # If the domain and range has changed, force regenerate the relation 
+        # If the domain and range has changed, force regenerate the relation
         changed_d_r = False
         if self.cache['func_domain'] != func_domain or self.cache['func_range'] != func_range:
             changed_d_r = True
@@ -652,33 +621,18 @@ class Graph:
         if len(low_res) > 0:
             low_res_warning(low_res)
 
-        # Draw the currently viewed portion of the graph, based on how offset from the origin it is
-        master_surface.blit(
-            graph_surface, (-(overarching_size[0] / 2) + (self.size[0] / 2) + self.offset_x,
-                            -(overarching_size[1] / 2) + (self.size[1] / 2) + self.offset_y))
-
         # Cache the last graphed domain and range, scales, offsets and relations
         self.cache = {'func_domain': func_domain, 'func_range': func_range, 'scale_x': scale_x,
                       'scale_y': scale_y, 'offset_x': self.offset_x, 'offset_y': self.offset_y, 'relations': relations}
 
         # Cache the last graphed surfaces
         self.last_surface = graph_surface
-        self.viewing_surface = master_surface
+        self.viewing_surface = graph_surface
 
-        return master_surface
+        return graph_surface
 
     # Check for any clicks on the graph, its buttons, equation inputs and sliders
     def handle_changes(self, buttons_pressed, clicked) -> object:
-
-        # Ensure the graph, when being rescaled, does not overshoot its size
-        if self.offset_x > self.plotting_size_x / 2 - self.size[0] / 2:
-            self.offset_x = self.plotting_size_x / 2 - self.size[0] / 2
-        elif self.offset_x < -(self.plotting_size_x / 2 - self.size[0] / 2):
-            self.offset_x = int(-(self.plotting_size_x / 2 - self.size[0] / 2))
-        if self.offset_y > self.plotting_size_y / 2 - self.size[1] / 2:
-            self.offset_y = self.plotting_size_y / 2 - self.size[1] / 2
-        elif self.offset_y < -(self.plotting_size_y / 2 - self.size[1] / 2):
-            self.offset_y = int(-(self.plotting_size_y / 2 - self.size[1] / 2))
 
         # Ensure only one object is recorded as clicked
         if clicked is None:
@@ -743,7 +697,7 @@ class Graph:
                     else:
                         textbox.set_active(False)
 
-            # If the slider or graph is clicked, set it as the clicked object 
+            # If the slider or graph is clicked, set it as the clicked object
             for slider in self.sliders:
                 if slider == clicked or clicked is None:
                     if slider.current_surface.get_rect(topleft=slider.get_pos()).collidepoint(pygame.mouse.get_pos()):
@@ -784,3 +738,4 @@ class Graph:
                                        0] - slider.get_pos()[0]
 
         return clicked
+    
