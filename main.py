@@ -458,65 +458,66 @@ def main():
                         calc_graph.extend(650)
                         sidebar_anim_frames = SIDEBAR_WIDTH
 
-                # Post save or snapshot events if buttons are clicked
-                if save_button.last_surface is not None:
-                    save_button.on_click()
+                if state == SAVE:
+                    # Post save or snapshot events if buttons are clicked
+                    if save_button.last_surface is not None:
+                        save_button.on_click()
 
-                if snapshot_button.last_surface is not None:
-                    snapshot_button.on_click()
+                    if snapshot_button.last_surface is not None:
+                        snapshot_button.on_click()
 
-                # Post scroll events if buttons are clicked
-                if scroll_up.last_surface is not None:
-                    scroll_up.on_click()
+                    # Post scroll events if buttons are clicked
+                    if scroll_up.last_surface is not None:
+                        scroll_up.on_click()
 
-                if scroll_down.last_surface is not None:
-                    scroll_down.on_click()
+                    if scroll_down.last_surface is not None:
+                        scroll_down.on_click()
 
-                # Handle correct removals of Opus saves and loads
-                removal = False
-                for save in opus_saves:
-                    if opus_removal_buttons[opus_saves[save]].on_click():
-                        delete = messagebox.askquestion('Delete Opus Graph', f'Are you sure you want to delete \"{opus_saves[save].name}\"?',
-                                                        icon='warning')
-                        if delete == 'yes':
-                            os.remove(save.name)
-                            removal = True
-                    if opus_load_buttons[opus_saves[save]].on_click():
-                        load = messagebox.askquestion('Load Opus Graph', f'Are you sure you want to load \"{opus_saves[save].name}\"?',
-                                                      icon='warning')
-                        if load == 'yes':
+                    # Handle correct removals of Opus saves and loads
+                    removal = False
+                    for save in opus_saves:
+                        if opus_removal_buttons[opus_saves[save]].on_click():
+                            delete = messagebox.askquestion('Delete Opus Graph', f'Are you sure you want to delete \"{opus_saves[save].name}\"?',
+                                                            icon='warning')
+                            if delete == 'yes':
+                                os.remove(save.name)
+                                removal = True
+                        if opus_load_buttons[opus_saves[save]].on_click():
+                            load = messagebox.askquestion('Load Opus Graph', f'Are you sure you want to load \"{opus_saves[save].name}\"?',
+                                                          icon='warning')
+                            if load == 'yes':
 
-                            for textbox in calc_graph.get_textboxes():
-                                textbox.reset()
-                                textbox.set_validity(True)
-                            for textbox in calc_graph.get_d_r_boxes():
-                                textbox.value = textbox.default
-                            calc_graph.reset()
-
-                            for line in opus_saves[save].lines:
                                 for textbox in calc_graph.get_textboxes():
-                                    if textbox.value != "":
-                                        continue
-                                    textbox.value = line
-                                    break
+                                    textbox.reset()
+                                    textbox.set_validity(True)
+                                for textbox in calc_graph.get_d_r_boxes():
+                                    textbox.value = textbox.default
+                                calc_graph.reset()
 
-                            current_state = GRAPHING
-                            messagebox.showinfo("Load Opus Graph", f"Successfully loaded \"{opus_saves[save].name}\".")
+                                for line in opus_saves[save].lines:
+                                    for textbox in calc_graph.get_textboxes():
+                                        if textbox.value != "":
+                                            continue
+                                        textbox.value = line
+                                        break
 
-                if removal:
-                    opus_saves = {}
-                    opus_load_buttons = {}
-                    opus_removal_buttons = {}
-                    for file in os.listdir(os.path.join(get_opus_path(), 'opus')):
-                        if file.lower().endswith(".opus"):
-                            with open(os.path.join(get_opus_path(), 'opus', file), "rb") as input_file:
-                                loaded = pickle.load(input_file)
-                                opus_saves[input_file] = loaded
-                                removal_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'remove.png'), (40, 40), EMPTY_EVENT, 0, "Del", background_colour=SIDEBAR_COLOUR)
-                                opus_removal_buttons[loaded] = removal_button
-                                load_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'load.png'), (40, 40), EMPTY_EVENT, 0, "Load", background_colour=SIDEBAR_COLOUR)
-                                opus_load_buttons[loaded] = load_button
-                            scroll_list_offset = 0
+                                current_state = GRAPHING
+                                messagebox.showinfo("Load Opus Graph", f"Successfully loaded \"{opus_saves[save].name}\".")
+
+                    if removal:
+                        opus_saves = {}
+                        opus_load_buttons = {}
+                        opus_removal_buttons = {}
+                        for file in os.listdir(os.path.join(get_opus_path(), 'opus')):
+                            if file.lower().endswith(".opus"):
+                                with open(os.path.join(get_opus_path(), 'opus', file), "rb") as input_file:
+                                    loaded = pickle.load(input_file)
+                                    opus_saves[input_file] = loaded
+                                    removal_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'remove.png'), (40, 40), EMPTY_EVENT, 0, "Del", background_colour=SIDEBAR_COLOUR)
+                                    opus_removal_buttons[loaded] = removal_button
+                                    load_button = Button(os.path.join(CurrentPath, 'assets', 'textures', 'load.png'), (40, 40), EMPTY_EVENT, 0, "Load", background_colour=SIDEBAR_COLOUR)
+                                    opus_load_buttons[loaded] = load_button
+                                scroll_list_offset = 0
 
                 # Reload sidebar after state change
                 sidebar = get_sidebar(sidebar_state, current_state, saving_now)
