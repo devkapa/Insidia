@@ -370,6 +370,7 @@ def main():
                     textbox.value = textbox.default
                 calc_graph.reset()
 
+            # Handle all custom Opus events
             if event.type == OPUS:
                 if len(calc_graph.lines) > 0:
                     saving_now = (True, OPUS)
