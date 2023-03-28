@@ -16,4 +16,4 @@ Insidia: Opus is an easy solution for saving your graphs. Either
 * Export them as an image (.png) to be shared anywhere!
 
 ## Downloading Insidia
-Visit the Releases page to find the latest distribution of Insidia for Windows. If you are a Mac or Linux user, feel free to clone/download and compile with your preferred method.
+Visit the Releases page to find the [latest distribution](https://github.com/devkapa/Insidia/releases/latest/) of Insidia for Windows. If you are a Mac or Linux user, feel free to clone/download and compile with your preferred method.
