@@ -3,7 +3,7 @@ Welcome to Insidia: A Python-based utility to render presentable graphs at your 
 
 ## How to use
 Insidia is easy to use, bolstering a dynamic GUI. Interact with well designed buttons and textboxes that control your graphing experience.
-For further direction, consider viewing the user manual, which provides a detailed walkthrough of 
+For further direction, consider viewing the [user manual](https://github.com/devkapa/Insidia/raw/main/assets/insidiamanual.pdf), which provides a detailed walkthrough of 
 * The opening user experience,
 * How to navigate Insidia,
 * Mathematical functions you can use,
